@@ -1,4 +1,11 @@
 package org.se.mealbridge.entity;
 
-public class DonationStatus {
+public enum DonationStatus {
+
+    AVAILABLE,  // EVERYONE CAN SEE IR
+    CLAIMED, //A VOLUNTEER HAS RECEIVED IT
+    PICKED_UP, //VOLUNTEER HAS COLLECTED IT FROM RESTAURANT
+    EXPIRED, //TIME PASSED AUTO REMOVED
+    DISTRIBUTED //VOLUNTEER HAS TO UPLOAD THE PROOF
+
 }

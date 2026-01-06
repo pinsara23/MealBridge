@@ -2,7 +2,6 @@ package org.se.mealbridge.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Columns;
 import org.locationtech.jts.geom.Point;
 
 
@@ -13,7 +12,7 @@ import java.time.LocalTime;
 @Getter @Setter @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class Restaurant {
+public class RestaurantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +21,7 @@ public class Restaurant {
     private String businessName;
     private String email;
     private String phoneNumber;
+    private String password;
     private LocalTime openTime;
     private LocalTime closeTime;
 

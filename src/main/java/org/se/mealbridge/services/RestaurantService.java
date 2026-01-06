@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class RestaurentService {
+public class RestaurantService {
 
     @Autowired
     private RestaurantRepository restaurantRepository;
@@ -24,7 +24,7 @@ public class RestaurentService {
     private final GeometryFactory geometryFactory = new GeometryFactory();
 
     //1.Register a restaurant
-    public RestaurantEntity registerRestaurent(RestaurantDTO restaurantDTO) {
+    public RestaurantDTO registerRestaurent(RestaurantDTO restaurantDTO) {
 
         RestaurantEntity restaurantEntity = modelMapper.map(restaurantDTO, RestaurantEntity.class);
 
@@ -33,12 +33,32 @@ public class RestaurentService {
         point.setSRID(4326);
         restaurantEntity.setLocation(point);
 
-        return restaurantRepository.save(restaurantEntity);
+        RestaurantEntity entity =  restaurantRepository.save(restaurantEntity);
+
+        RestaurantDTO dto =  modelMapper.map(entity, RestaurantDTO.class);
+        dto.setLongitude(entity.getLocation().getX());
+        dto.setLatitude(entity.getLocation().getY());
+
+        return dto;
     }
 
     //2.Find nearby restaurent
-    public List<RestaurantEntity> findNearbyRestaurants(double latitude, double longitude, double radiusInMeters) {
-        return restaurantRepository.findRestaurantsWithinDistance(longitude, latitude, radiusInMeters);
+    public List<RestaurantDTO> findNearbyRestaurants(double latitude, double longitude, double radiusInMeters) {
+        List<RestaurantEntity> restaurantEntities =  restaurantRepository.findRestaurantsWithinDistance(longitude, latitude, radiusInMeters);
+
+        return restaurantEntities.stream().map(restaurantEntity -> {
+            RestaurantDTO restaurantDTO = modelMapper.map(restaurantEntity, RestaurantDTO.class);
+
+            //Mannual map coordinates
+            if (restaurantEntity.getLocation() != null) {
+                restaurantDTO.setLatitude(restaurantEntity.getLocation().getY());
+                restaurantDTO.setLongitude(restaurantEntity.getLocation().getX());
+            }
+            restaurantDTO.setPassword(null);
+
+            return restaurantDTO;
+
+        }).toList();
     }
 
 }
