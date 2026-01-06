@@ -24,6 +24,7 @@ public class DonationCleanupScheduler {
 
         LocalDateTime now  = LocalDateTime.now();
 
+        //donation is still active but now time is after must picked up time
         List<DonationEntity> expiredDonations = donationRepository.findByStatusAndMustPickupByBefore(DonationStatus.AVAILABLE, now);
 
         if (!expiredDonations.isEmpty()){
@@ -33,6 +34,18 @@ public class DonationCleanupScheduler {
             }
 
             donationRepository.saveAll(expiredDonations);
+        }
+
+        //donation is claimed but expired before volunteer comes to the shop volunteer gives 1hr grace time period
+        LocalDateTime graceTime  = LocalDateTime.now().minusHours(1);
+
+        List<DonationEntity> expiredDonationsButClaimed = donationRepository.findByStatusAndMustPickupByBefore(DonationStatus.CLAIMED, graceTime);
+        if (!expiredDonationsButClaimed.isEmpty()){
+            for (DonationEntity donation : expiredDonationsButClaimed){
+                donation.setStatus(DonationStatus.EXPIRED);
+            }
+
+            donationRepository.saveAll(expiredDonationsButClaimed);
         }
     }
 

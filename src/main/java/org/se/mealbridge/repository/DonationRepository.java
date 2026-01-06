@@ -2,10 +2,12 @@ package org.se.mealbridge.repository;
 
 import org.se.mealbridge.entity.DonationEntity;
 import org.se.mealbridge.entity.DonationStatus;
+import org.se.mealbridge.entity.VolunteerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface DonationRepository extends JpaRepository<DonationEntity, Long> {
 
@@ -13,8 +15,20 @@ public interface DonationRepository extends JpaRepository<DonationEntity, Long> 
     List<DonationEntity> findByStatus(DonationStatus status);
 
     //Find by restaurant id
-    List<DonationEntity> findByDonorId(Long restaurantId);
+    List<DonationEntity> findByDonorIdAndStatusNotIn(Long restaurantId, List<DonationStatus> donationStatuses);
+
+    List<DonationEntity> findByAssignedVolunteerAndStatusNotIn(VolunteerEntity assignedVolunteer, List<DonationStatus> donationStatuses);
+
+    List<DonationEntity> findByDonorIdAndStatusIn(Long id, List<DonationStatus> donationStatuses);
 
     //find all donation  where Status is available and mustpickedup time is before now
     List<DonationEntity> findByStatusAndMustPickupByBefore(DonationStatus status, LocalDateTime now);
+
+    //find donation by pickup token
+    Optional<DonationEntity> findByPickupToken(String pickupToken);
+
+//    @Query("SELECT new org.se.mealbridge.dto.MonthlyStatsDto(FUNCTION('TO_CHAR', d.postedAt, 'Month'), SUM(d.quantityKg)) " +
+//            "FROM DonationEntity d WHERE d.donor.id = :restaurantId " +
+//            "GROUP BY FUNCTION('TO_CHAR', d.postedAt, 'Month')")
+//    List<MonthlyStatsDto> getMonthlyStats(@Param("restaurantId") Long restaurantId);
 }

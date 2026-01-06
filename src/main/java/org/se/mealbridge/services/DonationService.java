@@ -1,5 +1,6 @@
 package org.se.mealbridge.services;
 
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.se.mealbridge.dto.DonationsDto;
 import org.se.mealbridge.entity.DonationEntity;
@@ -9,9 +10,11 @@ import org.se.mealbridge.entity.VolunteerEntity;
 import org.se.mealbridge.repository.DonationRepository;
 import org.se.mealbridge.repository.RestaurantRepository;
 import org.se.mealbridge.repository.VolunteerRepository;
+import org.se.mealbridge.util.FileStorageutil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 
 import java.time.LocalDateTime;
@@ -32,6 +35,9 @@ public class DonationService {
 
     @Autowired
     private VolunteerRepository volunteerRepository;
+
+    @Autowired
+    private FileStorageutil fileStorageutil;
 
     private DonationsDto convertToDto(DonationEntity donationEntity) {
         DonationsDto donationsDto = modelMapper.map(donationEntity, DonationsDto.class);
@@ -72,7 +78,17 @@ public class DonationService {
     //find donations by restaurant id
     public List<DonationsDto> getAllDonationsByRestaurantId(Long restaurantId){
 
-        List<DonationEntity> donations = donationRepository.findByDonorId(restaurantId);
+        List<DonationEntity> donations = donationRepository.findByDonorIdAndStatusNotIn(restaurantId, List.of(DonationStatus.DISTRIBUTED, DonationStatus.EXPIRED));
+        return donations.stream().map(this::convertToDto).toList();
+    }
+
+    //find active Donations by volunteer id
+    public List<DonationsDto> getAllDonationsByVolunteerId(Long volunteerId){
+
+        VolunteerEntity volunteer = volunteerRepository.findById(volunteerId)
+                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
+        List<DonationEntity> donations = donationRepository.findByAssignedVolunteerAndStatusNotIn(volunteer, List.of(DonationStatus.DISTRIBUTED, DonationStatus.EXPIRED));
+
         return donations.stream().map(this::convertToDto).toList();
     }
 
@@ -100,6 +116,52 @@ public class DonationService {
         donationRepository.save(donation);
         return token;
 
+    }
+
+    // pickup a donation
+    public boolean verifyPickup(String token){
+
+        DonationEntity donation = donationRepository.findByPickupToken(token)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != DonationStatus.CLAIMED) {
+            return  false;
+        }
+
+        if (donation.getStatus() == DonationStatus.EXPIRED) {
+            return  false;
+        }
+
+        donation.setStatus(DonationStatus.PICKED_UP);
+        donationRepository.save(donation);
+        return true;
+
+    }
+
+    //Distribute Donations
+    @Transactional
+    public boolean submitDistributionProof(String token, MultipartFile photo){
+
+        DonationEntity donation = donationRepository.findByPickupToken(token).orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != DonationStatus.PICKED_UP) {
+            System.out.println("You have to pickup donation first");
+            return false;
+        }
+
+        String photoFileName = fileStorageutil.saveFile(photo);
+        donation.setImageUrl(photoFileName);
+
+        donation.setStatus(DonationStatus.DISTRIBUTED);
+        VolunteerEntity volunteer = donation.getAssignedVolunteer();
+
+        if (volunteer != null){
+            volunteer.setCreditScore(volunteer.getCreditScore() + 10);
+            volunteerRepository.save(volunteer);
+        }
+
+        donationRepository.save(donation);
+        return true;
     }
 
 

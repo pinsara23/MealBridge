@@ -30,6 +30,7 @@ public class DonationEntity {
     private LocalDateTime mustPickupBy;
     private LocalDateTime claimedAt;
 
+
     //For QR code
     private String pickupToken;
 

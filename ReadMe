@@ -10,7 +10,7 @@ Register a new business:
   "closeTime": "22:00:00"
 }
 
-post a donation
+post a donation - creates a pickup token
 {
   "foodDescription": "10 Packets of Rice And Curry",
   "quantityKg": 3.5,
@@ -27,3 +27,6 @@ Add volunteer group
   "password": "test"
 
 }
+
+after volunteer accept a donation request he will receive pickup token and generate a qr code then volunteer can go
+to the shop and show that qr code and get donation
