@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RestaurantRepository extends JpaRepository<RestaurantEntity,Long> {
@@ -21,5 +22,5 @@ public interface RestaurantRepository extends JpaRepository<RestaurantEntity,Lon
     );
 
     // --- OPTION 2: Finding by Email (for Login) ---
-    RestaurantEntity findByEmail(String email);
+    Optional<RestaurantEntity> findByEmail(String email);
 }

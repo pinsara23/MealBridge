@@ -8,7 +8,9 @@ import org.se.mealbridge.dto.RestaurantDTO;
 import org.se.mealbridge.entity.RestaurantEntity;
 import org.se.mealbridge.repository.RestaurantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -22,11 +24,15 @@ public class RestaurantService {
     private ModelMapper modelMapper;
 
     private final GeometryFactory geometryFactory = new GeometryFactory();
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     //1.Register a restaurant
     public RestaurantDTO registerRestaurent(RestaurantDTO restaurantDTO) {
 
         RestaurantEntity restaurantEntity = modelMapper.map(restaurantDTO, RestaurantEntity.class);
+
+        restaurantEntity.setPassword(passwordEncoder.encode(restaurantDTO.getPassword()));
 
         //geometry mapping
         Point point  = geometryFactory.createPoint(new Coordinate(restaurantDTO.getLongitude(), restaurantDTO.getLatitude()));
@@ -38,6 +44,7 @@ public class RestaurantService {
         RestaurantDTO dto =  modelMapper.map(entity, RestaurantDTO.class);
         dto.setLongitude(entity.getLocation().getX());
         dto.setLatitude(entity.getLocation().getY());
+        dto.setPassword(null);
 
         return dto;
     }
@@ -59,6 +66,35 @@ public class RestaurantService {
             return restaurantDTO;
 
         }).toList();
+    }
+
+    public RestaurantDTO findRestaurantById(@PathVariable Long id){
+        RestaurantEntity entity = restaurantRepository.findById(id).orElse(null);
+        RestaurantDTO dto =  modelMapper.map(entity, RestaurantDTO.class);
+
+        if (entity.getLocation() != null) {
+            dto.setLatitude(entity.getLocation().getY());
+            dto.setLongitude(entity.getLocation().getX());
+        }
+        dto.setPassword(null);
+
+        return dto;
+    }
+
+    public RestaurantDTO getRestaurentLocationById(Long id) {
+        RestaurantEntity entity = restaurantRepository.findById(id).orElse(null);
+        RestaurantDTO dto =  modelMapper.map(entity, RestaurantDTO.class);
+
+        if (entity.getLocation() != null) {
+            dto.setLatitude(entity.getLocation().getY());
+            dto.setLongitude(entity.getLocation().getX());
+        }
+        dto.setPassword(null);
+        dto.setId(null);
+        dto.setEmail(null);
+
+
+        return dto;
     }
 
 }

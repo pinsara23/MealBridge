@@ -20,11 +20,21 @@ public class VolunteerController {
         return volunteerService.saveVolunteer(volunteerDto);
     }
 
-    // /api/volunteer/register
-    @GetMapping("/unapproved")
-    public List<VolunteerDto> getUnApprovedVolunteers(){
-        return volunteerService.getNotVerifiedVolunteers();
+    // /api/volunteer/update/{id}
+    @PutMapping("/update/{id}")
+    public VolunteerDto updateVolunteer(@RequestBody VolunteerDto volunteerDto, @PathVariable Long id){
+        return volunteerService.updateVolunteer(volunteerDto,id);
     }
+
+    // /api/volunteer/details/{id}
+    @GetMapping("/details/{id}")
+    public VolunteerDto getVolunteer(@PathVariable Long id){
+        return volunteerService.getVolunteer(id);
+    }
+
+
+
+
 
 
 

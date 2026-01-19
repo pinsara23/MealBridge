@@ -28,4 +28,16 @@ public class RestaurantController {
     ){
         return restaurantService.findNearbyRestaurants(latitude, longitude, radius);
     }
+
+    // /api/restaurants/details/{id}
+    @GetMapping("/details/{id}")
+    public RestaurantDTO seeDetails(@PathVariable Long id){
+        return restaurantService.findRestaurantById(id);
+    }
+
+    // /api/restaurants/location/{id}
+    @GetMapping("/location/{id}")
+    public RestaurantDTO seeLocation(@PathVariable Long id){
+        return restaurantService.getRestaurentLocationById(id);
+    }
 }

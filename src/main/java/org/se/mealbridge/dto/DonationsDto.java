@@ -23,4 +23,6 @@ public class DonationsDto {
     private Long restaurantId;
     private String restaurantName;
 
+    private String pickupToken;
+
 }

@@ -43,6 +43,8 @@ public class DonationService {
         DonationsDto donationsDto = modelMapper.map(donationEntity, DonationsDto.class);
         donationsDto.setRestaurantId(donationEntity.getDonor().getId());
         donationsDto.setRestaurantName(donationEntity.getDonor().getBusinessName());
+        int hour = donationEntity.getMustPickupBy().minusHours(LocalDateTime.now().getHour()).getHour();
+        donationsDto.setHoursValid(Math.max(hour, 0));
         return donationsDto;
     }
 
@@ -75,10 +77,12 @@ public class DonationService {
         return donations.stream().map(this::convertToDto).toList();
     }
 
-    //find donations by restaurant id
+    //find donations by restaurant id - these are not picked up currently in restaurant side
     public List<DonationsDto> getAllDonationsByRestaurantId(Long restaurantId){
 
-        List<DonationEntity> donations = donationRepository.findByDonorIdAndStatusNotIn(restaurantId, List.of(DonationStatus.DISTRIBUTED, DonationStatus.EXPIRED));
+        List<DonationEntity> donations = donationRepository.findByDonorIdAndStatusNotIn(restaurantId,
+                List.of(DonationStatus.DISTRIBUTED, DonationStatus.EXPIRED, DonationStatus.PICKED_UP)
+        );
         return donations.stream().map(this::convertToDto).toList();
     }
 
@@ -100,11 +104,13 @@ public class DonationService {
         VolunteerEntity volunteer = volunteerRepository.findById(volunteerId).orElseThrow(() -> new RuntimeException("Volunteer not found"));
 
         if (donation.getStatus() != DonationStatus.AVAILABLE) {
-            throw new RuntimeException("Sorry this donation was claimed by someone else");
+            return "error1";
         }
 
         //logic 1 volunteer cant accept donation from 1 restaurant in near days this should implement
-
+        if (!(volunteer.isVerified())){
+            return "error2";
+        }
 
         donation.setAssignedVolunteer(volunteer);
         donation.setStatus(DonationStatus.CLAIMED);
@@ -119,7 +125,7 @@ public class DonationService {
     }
 
     // pickup a donation
-    public boolean verifyPickup(String token){
+    public boolean verifyPickup(String token, Long restaurantId){
 
         DonationEntity donation = donationRepository.findByPickupToken(token)
                 .orElseThrow(() -> new RuntimeException("Donation not found"));
@@ -132,9 +138,16 @@ public class DonationService {
             return  false;
         }
 
-        donation.setStatus(DonationStatus.PICKED_UP);
-        donationRepository.save(donation);
-        return true;
+        if (donation.getDonor().getId() == restaurantId) {
+
+            donation.setStatus(DonationStatus.PICKED_UP);
+            donationRepository.save(donation);
+            return true;
+
+        }else  {
+            return  false;
+        }
+
 
     }
 
@@ -164,6 +177,37 @@ public class DonationService {
         return true;
     }
 
+    //Distribute Donations without photo
+    @Transactional
+    public boolean confirmDistribution(String token){
+
+        DonationEntity donation = donationRepository.findByPickupToken(token).orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getStatus() != DonationStatus.PICKED_UP) {
+            System.out.println("You have to pickup donation first");
+            return false;
+        }
+
+        donation.setStatus(DonationStatus.DISTRIBUTED);
+        VolunteerEntity volunteer = donation.getAssignedVolunteer();
+
+        if (volunteer != null){
+            volunteer.setCreditScore(volunteer.getCreditScore() + 10);
+            volunteerRepository.save(volunteer);
+        }
+
+        donationRepository.save(donation);
+        return true;
+    }
+
+    // these donations are already picked up or expired or distributed
+    public List<DonationsDto> getDonationHistoryByRestaurentId(Long restaurantId){
+
+        List<DonationEntity> donationHistory = donationRepository.findByDonorIdAndStatusNotIn(restaurantId,
+                List.of(DonationStatus.AVAILABLE, DonationStatus.CLAIMED)
+        );
+        return donationHistory.stream().map(this::convertToDto).toList();
+    }
 
 
 

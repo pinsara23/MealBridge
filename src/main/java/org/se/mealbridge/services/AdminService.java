@@ -2,15 +2,18 @@ package org.se.mealbridge.services;
 
 import org.modelmapper.ModelMapper;
 import org.se.mealbridge.dto.AdminDto;
+import org.se.mealbridge.dto.RestaurantDTO;
 import org.se.mealbridge.dto.VolunteerDto;
 import org.se.mealbridge.entity.AdminEntity;
 import org.se.mealbridge.entity.DonationStatus;
+import org.se.mealbridge.entity.RestaurantEntity;
 import org.se.mealbridge.entity.VolunteerEntity;
 import org.se.mealbridge.repository.AdminRepository;
 import org.se.mealbridge.repository.DonationRepository;
 import org.se.mealbridge.repository.RestaurantRepository;
 import org.se.mealbridge.repository.VolunteerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,13 +33,32 @@ public class AdminService {
 
     @Autowired
     private DonationRepository donationRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public AdminDto registerAdminMem(AdminDto adminDto) {
 
         AdminEntity adminEntity = modelMapper.map(adminDto, AdminEntity.class);
+        adminEntity.setPassword(passwordEncoder.encode(adminDto.getPassword()));
+
         AdminEntity savedEntity = adminRepository.save(adminEntity);
+        savedEntity.setPassword(null);
 
         return  modelMapper.map(savedEntity, AdminDto.class);
+    }
+
+    public boolean changePassword(Long id, String password) {
+
+        AdminEntity adminEntity = adminRepository.findById(id).orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        adminEntity.setPassword(passwordEncoder.encode(password));
+
+        AdminEntity savedEntity = adminRepository.save(adminEntity);
+        if (savedEntity != null) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public boolean approveVolunteers(Long volunteerId){
@@ -74,6 +96,67 @@ public class AdminService {
 
     public Long getTotalCompletedDonations(){
         return (long) donationRepository.findByStatus(DonationStatus.DISTRIBUTED).size();
+    }
+
+    public Long getTotalAvailableDonations(){
+        return (long) donationRepository.findByStatus(DonationStatus.AVAILABLE).size();
+    }
+
+    public Long getTotalPostedDonations(){
+        return (long) donationRepository.count();
+    }
+
+    public Double totalFoodDonatedInKg() {
+        Double totalKg = donationRepository.getTotalQuantity();
+        return totalKg != null ? totalKg : 0.0;
+    }
+
+    public List<VolunteerDto> getAllVolunteers(){
+        List<VolunteerEntity> volunteers = volunteerRepository.findAll();
+
+        return volunteers.stream().map(volunteerEntity -> {
+
+            VolunteerDto volunteerDto = modelMapper.map(volunteerEntity, VolunteerDto.class);
+            volunteerDto.setPassword(null);
+            return volunteerDto;
+        }).toList();
+    }
+
+    public List<RestaurantDTO> getAllRestaurants(){
+
+        List<RestaurantEntity> restaurants = restaurantRepository.findAll();
+
+        return restaurants.stream().map(restaurantEntity -> {
+             RestaurantDTO restaurantDto = modelMapper.map(restaurantEntity, RestaurantDTO.class);
+
+             if (restaurantEntity.getLocation() != null) {
+                 restaurantDto.setLongitude(restaurantEntity.getLocation().getX());
+                 restaurantDto.setLatitude(restaurantEntity.getLocation().getY());
+             }
+
+             restaurantDto.setPassword(null);
+
+             return restaurantDto;
+
+        }).toList();
+
+    }
+
+    public AdminDto getAdminById(Long id){
+
+        AdminEntity adminEntity = adminRepository.findById(id).orElseThrow(() -> new RuntimeException("Admin not found"));
+        AdminDto adminDto = modelMapper.map(adminEntity, AdminDto.class);
+        adminDto.setPassword(null);
+        return adminDto;
+    }
+
+    public List<AdminDto> getAllAdmins(){
+        List<AdminEntity> adminEntities = adminRepository.findAll();
+        return adminEntities.stream().map(adminEntity -> {
+            AdminDto adminDto = modelMapper.map(adminEntity, AdminDto.class);
+            adminDto.setPassword(null);
+            return adminDto;
+        }).toList();
     }
 
 

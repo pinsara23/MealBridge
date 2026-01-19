@@ -28,5 +28,20 @@ Add volunteer group
 
 }
 
+add admin
+{
+    "userName": "pinsara",
+    "password": "test",
+    "role": "superadmin"
+}
+
 after volunteer accept a donation request he will receive pickup token and generate a qr code then volunteer can go
 to the shop and show that qr code and get donation
+
+how to use token
+
+This is how you get past the security guard.
+
+1.Click the Authorization tab (under the URL bar).
+2.Change Type to Bearer Token.
+3.Paste your Token string into the "Token" box.

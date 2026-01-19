@@ -18,5 +18,5 @@ public class AdminEntity {
 
     private String userName;
     private String password;
-    private String role;
+    private String role = "staff";
 }

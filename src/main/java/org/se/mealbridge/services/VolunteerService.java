@@ -5,6 +5,7 @@ import org.se.mealbridge.dto.VolunteerDto;
 import org.se.mealbridge.entity.VolunteerEntity;
 import org.se.mealbridge.repository.VolunteerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,39 +17,39 @@ public class VolunteerService {
     private VolunteerRepository volunteerRepository;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     //save volunteer group
     public VolunteerDto saveVolunteer(VolunteerDto volunteerDto) {
 
         VolunteerEntity enity = modelMapper.map(volunteerDto, VolunteerEntity.class);
+        enity.setPassword(passwordEncoder.encode(volunteerDto.getPassword()));
 
         VolunteerEntity savedVolunteerEntity = volunteerRepository.save(enity);
         return modelMapper.map(savedVolunteerEntity, VolunteerDto.class);
     }
 
-    //verify an volunteer
-    public boolean verifyVolunteer(Long volunteerId) {
+    //update volunteer details
+    public VolunteerDto updateVolunteer(VolunteerDto volunteerDto, Long volunteerId) {
 
-        VolunteerEntity entity =  volunteerRepository.findById(volunteerId).orElse(null);
-        if (entity == null){
-            return false;
-        }
+        VolunteerEntity existingVolunteer = volunteerRepository.findById(volunteerId)
+                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
 
-        entity.setVerified(true);
-        volunteerRepository.save(entity);
-        return true;
+        if (volunteerDto.getOrganizationName() != null) existingVolunteer.setOrganizationName(volunteerDto.getOrganizationName());
+        if (volunteerDto.getPresidentFullName() != null) existingVolunteer.setPresidentFullName(volunteerDto.getPresidentFullName());
+        if (volunteerDto.getPhoneNumber() != null) existingVolunteer.setPhoneNumber(volunteerDto.getPhoneNumber());
+        if (volunteerDto.getEmail() != null) existingVolunteer.setEmail(volunteerDto.getEmail());
+
+
+        VolunteerEntity updatedVolunteer = volunteerRepository.save(existingVolunteer);
+
+        return modelMapper.map(updatedVolunteer, VolunteerDto.class);
+
     }
 
-    //list of not verified volunteers
-    public List<VolunteerDto> getNotVerifiedVolunteers() {
-
-        List<VolunteerEntity> volunteerEntities = volunteerRepository.findByIsVerified(false);
-        return volunteerEntities.stream().map(volunteerEntity -> {
-
-            VolunteerDto dto = modelMapper.map(volunteerEntity, VolunteerDto.class);
-            dto.setPassword(null);
-            return dto;
-
-        }).toList();
+    public VolunteerDto getVolunteer(Long id){
+        VolunteerEntity en = volunteerRepository.findById(id).orElseThrow(() -> new RuntimeException("Volunteer not found"));
+        return modelMapper.map(en, VolunteerDto.class);
     }
 }

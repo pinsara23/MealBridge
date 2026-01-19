@@ -11,12 +11,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/donations")
+@CrossOrigin(origins = "*")
 public class DonationController {
 
     @Autowired
     private DonationService donationService;
 
-    ///api/donations
+    // /api/donations
     @PostMapping
     public DonationsDto postDonation(@RequestBody DonationsDto dto) {
 
@@ -29,12 +30,19 @@ public class DonationController {
         return donationService.getAllAvailableDonations();
     }
 
-    // /api/donations/feed
+    // /api/donations/feed/restaurent/{id}
     @GetMapping("/feed/restaurent/{id}")
     public List<DonationsDto> getFeedByRestaurantId(@PathVariable Long id){
         return donationService.getAllDonationsByRestaurantId(id);
     }
 
+    // /api/donations/feed/history/restaurant/{id}
+    @GetMapping("/feed/history/restaurant/{id}")
+    public List<DonationsDto> getDonationHistory(@PathVariable Long id){
+        return donationService.getDonationHistoryByRestaurentId(id);
+    }
+
+    // /api/donations/feed/volunteer/{id}
     @GetMapping("/feed/volunteer/{id}")
     public List<DonationsDto> getFeedByVolunteerId(@PathVariable Long id){
         return donationService.getAllDonationsByVolunteerId(id);
@@ -49,11 +57,11 @@ public class DonationController {
         return donationService.claimDonation(donationId, vId);
     }
 
-    // /api/donations/verify-pickup?token=token
-    @PutMapping("/verify-pickup")
-    public boolean verifyPickup(@RequestParam String token){
+    // /api/donations/{restaurantId}/verify-pickup?token=token
+    @PutMapping("{id}/verify-pickup")
+    public boolean verifyPickup(@PathVariable Long id, @RequestParam String token){
 
-        return donationService.verifyPickup(token);
+        return donationService.verifyPickup(token, id);
     }
 
     // /api/donations/distribute
@@ -64,6 +72,12 @@ public class DonationController {
             ){
         System.out.println("Photo saved successfully");
         return donationService.submitDistributionProof(token, photo);
+    }
+
+    // /api/donations/distribute/withoutphoto?token=token
+    @PostMapping ("/distribute/withoutphoto")
+    public boolean submitProof(@RequestParam("token") String token){
+        return donationService.confirmDistribution(token);
     }
 
 
