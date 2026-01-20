@@ -48,6 +48,20 @@ public class VolunteerService {
 
     }
 
+    public boolean changePassword(Long id, String oldPassword, String newPassword) {
+
+        VolunteerEntity volunteer = volunteerRepository.findById(id).orElseThrow(() -> new RuntimeException("Volunteer not found"));
+
+        String hashedOldPassword = passwordEncoder.encode(oldPassword);
+        if (!(passwordEncoder.matches(oldPassword, hashedOldPassword))){
+            return false;
+        }
+
+        volunteer.setPassword(passwordEncoder.encode(newPassword));
+        volunteerRepository.save(volunteer);
+        return true;
+    }
+
     public VolunteerDto getVolunteer(Long id){
         VolunteerEntity en = volunteerRepository.findById(id).orElseThrow(() -> new RuntimeException("Volunteer not found"));
         return modelMapper.map(en, VolunteerDto.class);

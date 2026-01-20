@@ -49,6 +49,48 @@ public class RestaurantService {
         return dto;
     }
 
+    public RestaurantDTO updateRestaurentdetails(RestaurantDTO restaurantDTO, Long restaurantId) {
+
+        RestaurantEntity existingRestaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+
+        if (restaurantDTO.getBusinessName() != null) existingRestaurant.setBusinessName(restaurantDTO.getBusinessName());
+        if (restaurantDTO.getPhoneNumber() != null) existingRestaurant.setPhoneNumber(restaurantDTO.getPhoneNumber());
+        if (restaurantDTO.getEmail() != null) existingRestaurant.setEmail(restaurantDTO.getEmail());
+        if (restaurantDTO.getOpenTime() != null) existingRestaurant.setOpenTime(restaurantDTO.getOpenTime());
+        if (restaurantDTO.getCloseTime() != null) existingRestaurant.setCloseTime(restaurantDTO.getCloseTime());
+
+        RestaurantEntity updatedRestaurant = restaurantRepository.save(existingRestaurant);
+
+        RestaurantDTO dto =  modelMapper.map(updatedRestaurant, RestaurantDTO.class);
+        if (dto != null){
+            dto.setLongitude(updatedRestaurant.getLocation().getX());
+            dto.setLatitude(updatedRestaurant.getLocation().getY());
+            dto.setPassword(null);
+        }
+
+        return dto;
+
+    }
+
+    public boolean changePassword(Long restaurantId, String oldPassword, String newPassword) {
+
+        RestaurantEntity existingRestaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+
+        String currentPasswordHash = existingRestaurant.getPassword();
+
+        if (!passwordEncoder.matches(oldPassword, currentPasswordHash)) {
+            return false;
+        }
+        existingRestaurant.setPassword(passwordEncoder.encode(newPassword));
+
+        RestaurantEntity updatedRestaurant = restaurantRepository.save(existingRestaurant);
+
+        return true;
+
+    }
+
     //2.Find nearby restaurent
     public List<RestaurantDTO> findNearbyRestaurants(double latitude, double longitude, double radiusInMeters) {
         List<RestaurantEntity> restaurantEntities =  restaurantRepository.findRestaurantsWithinDistance(longitude, latitude, radiusInMeters);

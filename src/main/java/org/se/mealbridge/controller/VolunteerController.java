@@ -26,6 +26,12 @@ public class VolunteerController {
         return volunteerService.updateVolunteer(volunteerDto,id);
     }
 
+    // /api/volunteer/update/password/{id}?oldPassword=old&newPassword=new
+    @PostMapping("/update/password/{id}")
+    public boolean changePassword(@PathVariable Long id, @RequestParam String oldPassword, @RequestParam String newPassword){
+        return volunteerService.changePassword(id, oldPassword, newPassword);
+    }
+
     // /api/volunteer/details/{id}
     @GetMapping("/details/{id}")
     public VolunteerDto getVolunteer(@PathVariable Long id){

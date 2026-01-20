@@ -20,6 +20,18 @@ public class RestaurantController {
         return restaurantService.registerRestaurent(restaurantDTO);
     }
 
+    // /api/restaurants/update/{restaurantId}
+    @PutMapping("/update/{restaurantId}")
+    public RestaurantDTO updateDetails(@RequestBody RestaurantDTO restaurantDTO, @PathVariable Long restaurantId) {
+        return restaurantService.updateRestaurentdetails(restaurantDTO, restaurantId);
+    }
+
+     // /api/restaurants/update/password/{restaurantId}?opass=oldpassword&npass=newpassword
+    @PostMapping("/update/password/{restaurantId}")
+    public boolean changePassword(@RequestParam String opass, @RequestParam String npass, @PathVariable Long restaurantId) {
+        return restaurantService.changePassword(restaurantId, opass, npass);
+    }
+
     @GetMapping("/nearby")
     public List<RestaurantDTO> getNearby(
             @RequestParam double latitude,
