@@ -1,66 +1,120 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Ensure intl is in pubspec.yaml
 import '../../theme/colors.dart';
-import '../../utils/constants.dart';
-import '../../widgets/status_chip.dart';
-import '../../widgets/food_type_chip.dart';
+import '../../services/api_service.dart';
+// import '../../widgets/status_chip.dart'; // Uncomment if you have this file
+// import '../../widgets/food_type_chip.dart'; // Uncomment if you have this file
 
-class MyDonationsScreen extends StatelessWidget {
+class MyDonationsScreen extends StatefulWidget {
   const MyDonationsScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Mock data
-    final activeDonations = [
-      {
-        'id': '1',
-        'name': 'Rice and Curry',
-        'quantity': 'Serves 10 people',
-        'status': 'Pending',
-        'time': '30 mins ago',
-        'isVeg': true,
-      },
-      {
-        'id': '2',
-        'name': 'Fresh Vegetables',
-        'quantity': '5 kg',
-        'status': 'In Progress',
-        'time': '2 hours ago',
-        'isVeg': true,
-      },
-      {
-        'id': '3',
-        'name': 'Chicken Biryani',
-        'quantity': 'Serves 15 people',
-        'status': 'Active',
-        'time': '4 hours ago',
-        'isVeg': false,
-      },
-    ];
+  State<MyDonationsScreen> createState() => _MyDonationsScreenState();
+}
 
+class _MyDonationsScreenState extends State<MyDonationsScreen> {
+  final ApiService _apiService = ApiService();
+  late Future<List<dynamic>> _donationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDonations();
+  }
+
+  // 1. Load Data Logic
+  void _loadDonations() {
+    setState(() {
+      _donationsFuture = _fetchData();
+    });
+  }
+
+  Future<List<dynamic>> _fetchData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final userId = prefs.getInt('userId');
+
+    if (token != null && userId != null) {
+      return _apiService.getRestaurantDonations(token, userId);
+    } else {
+      throw Exception("User not logged in");
+    }
+  }
+
+  // Helper to format Date string "2026-01-13T15:35..." -> "Jan 13, 03:35 PM"
+  String _formatDate(String isoDate) {
+    try {
+      final dt = DateTime.parse(isoDate);
+      return DateFormat('MMM dd, hh:mm a').format(dt);
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Active Donations'),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: activeDonations.length,
-        itemBuilder: (context, index) {
-          final donation = activeDonations[index];
-          return _DonationCard(
-            name: donation['name'] as String,
-            quantity: donation['quantity'] as String,
-            status: donation['status'] as String,
-            time: donation['time'] as String,
-            isVeg: donation['isVeg'] as bool,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.donationDetails,
-                arguments: donation,
+      // 2. Refresh Indicator (Pull-to-Refresh)
+      body: RefreshIndicator(
+        onRefresh: () async => _loadDonations(),
+        child: FutureBuilder<List<dynamic>>(
+          future: _donationsFuture,
+          builder: (context, snapshot) {
+            
+            // Loading
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            }
+
+            // Error
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text('Error: ${snapshot.error}'),
+                    TextButton(onPressed: _loadDonations, child: const Text("Retry")),
+                  ],
+                ),
               );
-            },
-          );
-        },
+            }
+
+            // Empty
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text("No donations found. Post some food!"));
+            }
+
+            // Success: List Data
+            final donations = snapshot.data!;
+            
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: donations.length,
+              itemBuilder: (context, index) {
+                final item = donations[index];
+                
+                // Map API fields to UI
+                return _DonationCard(
+                  name: item['foodDescription'] ?? 'No Description',
+                  quantity: "${item['quantityKg']} Kg",
+                  status: item['status'] ?? 'UNKNOWN',
+                  time: _formatDate(item['mustPickupBy'] ?? ''),
+                  // API doesn't send 'isVeg' currently, defaulting to false or checking desc
+                  isVeg: false, 
+                  onTap: () {
+                    // Navigate to details if needed
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -109,7 +163,11 @@ class _DonationCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  FoodTypeChip(isVeg: isVeg),
+                  // If you removed FoodTypeChip, use a simple Icon/Text instead
+                  Icon(
+                    isVeg ? Icons.eco : Icons.restaurant, 
+                    color: isVeg ? Colors.green : Colors.redAccent
+                  ),
                 ],
               ),
               
@@ -118,39 +176,25 @@ class _DonationCard extends StatelessWidget {
               // Quantity
               Row(
                 children: [
-                  const Icon(
-                    Icons.restaurant_rounded,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
+                  const Icon(Icons.scale_rounded, size: 18, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
                   Text(
                     quantity,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
                 ],
               ),
               
               const SizedBox(height: 8),
               
-              // Time
+              // Time (Pickup By)
               Row(
                 children: [
-                  const Icon(
-                    Icons.access_time_rounded,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
+                  const Icon(Icons.access_time_filled, size: 18, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
                   Text(
-                    time,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
+                    "Pickup by: $time",
+                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -161,7 +205,24 @@ class _DonationCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  StatusChip(status: status),
+                  // Simple Status Chip logic since widget file might be missing
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _getStatusColor(status)),
+                    ),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        color: _getStatusColor(status),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  
                   Row(
                     children: [
                       IconButton(
@@ -173,7 +234,7 @@ class _DonationCard extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.delete_rounded),
                         onPressed: () {},
-                        color: AppColors.error,
+                        color: AppColors.error, // Colors.red
                         iconSize: 20,
                       ),
                     ],
@@ -185,5 +246,15 @@ class _DonationCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Helper color for status
+  Color _getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'AVAILABLE': return Colors.green;
+      case 'CLAIMED': return Colors.blue; // AppColors.info
+      case 'COMPLETED': return Colors.grey;
+      default: return Colors.orange;
+    }
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/colors.dart';
 import '../../utils/constants.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -15,8 +17,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final ApiService _apiService = ApiService();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
+  
+  // New: Role Selection State
+  String _selectedRole = 'Restaurant'; // Default value
+  final List<String> _roles = ['Restaurant', 'Volunteer', 'Admin'];
 
   @override
   void dispose() {
@@ -25,41 +33,103 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
-      // Simulate login process
-      Future.delayed(const Duration(seconds: 2), () {
-        final role = ModalRoute.of(context)?.settings.arguments as UserRole?;
-        
-        String route;
-        switch (role) {
-          case UserRole.donor:
-            route = AppRoutes.donorDashboard;
-            break;
-          case UserRole.recipient:
-            route = AppRoutes.recipientHome;
-            break;
-          case UserRole.volunteer:
-            route = AppRoutes.volunteerDashboard;
-            break;
-          case UserRole.admin:
-            route = AppRoutes.adminDashboard;
-            break;
-          default:
-            route = AppRoutes.donorDashboard;
+
+      try {
+        // 1. Call Backend
+        // Note: You might need to pass the selected role to your API if your backend requires it for login differentiation.
+        // Assuming your current API handles role detection automatically based on email/table, otherwise update _apiService.login to accept role.
+        final responseData = await _apiService.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        // 2. Save Token & ID to Storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', responseData['token']);
+
+        // Save Display Name Logic
+        final dynamic userObj = responseData['user'];
+        final dynamic restaurantObj = responseData['restaurant'];
+        final String? displayName = (responseData['restaurantName'] ??
+                responseData['hotelName'] ??
+                responseData['name'] ??
+                responseData['username'] ??
+                responseData['fullName'] ??
+                (userObj is Map ? (userObj['name'] ?? userObj['username'] ?? userObj['fullName']) : null) ??
+                (restaurantObj is Map ? (restaurantObj['name'] ?? restaurantObj['restaurantName'] ?? restaurantObj['hotelName']) : null))
+            ?.toString();
+
+        if (displayName != null && displayName.trim().isNotEmpty) {
+          await prefs.setString('displayName', displayName.trim());
         }
-        
+
+        // Save User ID
+        if (responseData['userId'] is int) {
+          await prefs.setInt('userId', responseData['userId']);
+        } else {
+          await prefs.setInt('userId', int.parse(responseData['userId'].toString()));
+        }
+
+        // Save Role from Backend (Safety check against selected role if needed)
+        String backendRole = responseData['role'];
+        await prefs.setString('role', backendRole);
+
+        if (!mounted) return;
+
+        // 3. Navigate Based on Backend Role (Ensures security)
+        String route;
+        if (backendRole == 'ROLE_RESTAURANT') {
+          route = AppRoutes.donorDashboard;
+        } else if (backendRole == 'ROLE_VOLUNTEER') {
+          route = AppRoutes.volunteerDashboard;
+        } else if (backendRole == 'ROLE_ADMIN' || backendRole == 'ROLE_SUPER_ADMIN') {
+          route = AppRoutes.adminDashboard;
+        } else {
+          // Fallback or Error
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Unknown Role Assigned'), backgroundColor: Colors.orange),
+          );
+          return;
+        }
+
+        // Optional: Check if selected dropdown role matches backend role
+        // This is just a UI warning, the backend role is the source of truth.
+        if (_mapRoleToBackend(_selectedRole) != backendRole && backendRole != 'ROLE_SUPER_ADMIN') {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Logged in as $backendRole (Note: You selected $_selectedRole)'), backgroundColor: Colors.blue),
+          );
+        }
+
         Navigator.pushReplacementNamed(context, route);
-      });
+
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login Failed: ${e.toString().replaceAll("Exception:", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Helper to map UI dropdown to potential backend role strings for comparison
+  String _mapRoleToBackend(String uiRole) {
+    switch (uiRole) {
+      case 'Restaurant': return 'ROLE_RESTAURANT';
+      case 'Volunteer': return 'ROLE_VOLUNTEER';
+      case 'Admin': return 'ROLE_ADMIN';
+      default: return '';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final role = ModalRoute.of(context)?.settings.arguments as UserRole? ?? UserRole.donor;
-    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -74,18 +144,17 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 40),
-                  
-                  // Logo with animation
-                  Center(
-                    child: TweenAnimationBuilder<double>(
+          child: Center( // Centers content vertically on larger screens
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo Section
+                    TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0.0, end: 1.0),
                       duration: const Duration(milliseconds: 600),
                       builder: (context, value, child) {
@@ -103,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   AppColors.primary.withOpacity(0.05),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(28),
+                              shape: BoxShape.circle, // Circular Logo container
                               boxShadow: [
                                 BoxShadow(
                                   color: AppColors.primary.withOpacity(0.3),
@@ -121,289 +190,178 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       },
                     ),
-                  ),
-                
-                const SizedBox(height: 32),
-                
-                // Title
-                const Text(
-                  'Welcome Back!',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 12),
-                
-                Text(
-                  'Login as ${_getRoleName(role)}',
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // Email Field
-                CustomTextField(
-                  label: 'Email',
-                  hint: 'Enter your email',
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.email_rounded,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Password Field
-                CustomTextField(
-                  label: 'Password',
-                  hint: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  prefixIcon: Icons.lock_rounded,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_rounded : Icons.visibility_off_rounded,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
-                    },
-                    child: const Text('Forgot Password?'),
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Login Button
-                CustomButton(
-                  text: 'Login',
-                  onPressed: _handleLogin,
-                  isLoading: _isLoading,
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // OR Divider
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              AppColors.border,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'OR',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Container(
-                        height: 1,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.border,
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Google Sign In Button
-                _GoogleSignInButton(
-                  onPressed: () {
-                    // Handle Google Sign In
-                    final role = ModalRoute.of(context)?.settings.arguments as UserRole?;
-                    String route;
-                    switch (role) {
-                      case UserRole.donor:
-                        route = AppRoutes.donorDashboard;
-                        break;
-                      case UserRole.recipient:
-                        route = AppRoutes.recipientHome;
-                        break;
-                      case UserRole.volunteer:
-                        route = AppRoutes.volunteerDashboard;
-                        break;
-                      case UserRole.admin:
-                        route = AppRoutes.adminDashboard;
-                        break;
-                      default:
-                        route = AppRoutes.donorDashboard;
-                    }
-                    Navigator.pushReplacementNamed(context, route);
-                  },
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Register Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+
+                    const SizedBox(height: 32),
+
                     const Text(
-                      "Don't have an account? ",
-                      style: TextStyle(color: AppColors.textSecondary),
+                      'Welcome Back!',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, AppRoutes.register, arguments: role);
+
+                    const SizedBox(height: 12),
+
+                    const Text(
+                      'Login to continue',
+                      style: TextStyle(
+                        fontSize: 17,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // --- ROLE DROPDOWN ---
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedRole,
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down_circle, color: AppColors.primary),
+                          items: _roles.map((String role) {
+                            IconData icon;
+                            if (role == 'Restaurant') icon = Icons.restaurant;
+                            else if (role == 'Volunteer') icon = Icons.volunteer_activism;
+                            else icon = Icons.admin_panel_settings;
+
+                            return DropdownMenuItem<String>(
+                              value: role,
+                              child: Row(
+                                children: [
+                                  Icon(icon, size: 20, color: Colors.grey[700]),
+                                  const SizedBox(width: 12),
+                                  Text(role, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedRole = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Email Field
+                    CustomTextField(
+                      label: 'Email',
+                      hint: 'Enter your email',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.email_rounded,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
                       },
-                      child: const Text('Register'),
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // Password Field
+                    CustomTextField(
+                      label: 'Password',
+                      hint: 'Enter your password',
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      prefixIcon: Icons.lock_rounded,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        if (value.length < 2) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Forgot Password
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.forgotPassword);
+                        },
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Login Button
+                    CustomButton(
+                      text: 'Login as $_selectedRole', // Dynamic Button Text
+                      onPressed: _handleLogin,
+                      isLoading: _isLoading,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Register Link (Only show if not Admin, assuming Admins are added manually)
+                    if (_selectedRole != 'Admin') 
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "Don't have an account? ",
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              // Pass the selected role to registration page
+                              // Mapping string to UserRole enum if needed, or pass string directly
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.register,
+                                arguments: _selectedRole, 
+                              );
+                            },
+                            child: const Text('Register'),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      ),
-    );
-  }
-
-  String _getRoleName(UserRole role) {
-    switch (role) {
-      case UserRole.donor:
-        return 'Donor';
-      case UserRole.recipient:
-        return 'Recipient';
-      case UserRole.volunteer:
-        return 'Volunteer';
-      case UserRole.admin:
-        return 'Admin';
-    }
-  }
-}
-
-// Google Sign In Button Widget
-class _GoogleSignInButton extends StatefulWidget {
-  final VoidCallback onPressed;
-
-  const _GoogleSignInButton({required this.onPressed});
-
-  @override
-  State<_GoogleSignInButton> createState() => _GoogleSignInButtonState();
-}
-
-class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onPressed();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        transform: Matrix4.identity()..scale(_isPressed ? 0.98 : 1.0),
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isPressed ? AppColors.primary : AppColors.border,
-            width: _isPressed ? 2 : 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: _isPressed 
-                  ? AppColors.primary.withOpacity(0.15)
-                  : Colors.black.withOpacity(0.08),
-              blurRadius: _isPressed ? 16 : 10,
-              offset: Offset(0, _isPressed ? 6 : 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Google Logo
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                image: const DecorationImage(
-                  image: NetworkImage(
-                    'https://www.google.com/favicon.ico',
-                  ),
-                  fit: BoxFit.contain,
-                ),
-                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(width: 16),
-            const Text(
-              'Continue with Google',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

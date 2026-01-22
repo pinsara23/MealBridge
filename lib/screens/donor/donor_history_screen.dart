@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Add intl: ^0.18.0 to pubspec.yaml
 import '../../theme/colors.dart';
-import '../../widgets/custom_button.dart';
+import '../../services/api_service.dart';
 
 class DonorHistoryScreen extends StatefulWidget {
   const DonorHistoryScreen({Key? key}) : super(key: key);
@@ -43,7 +45,7 @@ class _DonorHistoryScreenState extends State<DonorHistoryScreen> with SingleTick
       body: TabBarView(
         controller: _tabController,
         children: [
-          _HistoryTab(),
+          const _HistoryTab(), // Now using the connected tab
           _CertificatesTab(),
         ],
       ),
@@ -51,130 +53,163 @@ class _DonorHistoryScreenState extends State<DonorHistoryScreen> with SingleTick
   }
 }
 
-class _HistoryTab extends StatelessWidget {
-  final List<Map<String, dynamic>> history = [
-    {
-      'name': 'Chicken Biryani',
-      'date': 'Dec 28, 2025',
-      'quantity': 'Serves 15',
-      'status': 'Completed',
-      'peopleFed': 15,
-    },
-    {
-      'name': 'Vegetable Curry',
-      'date': 'Dec 25, 2025',
-      'quantity': 'Serves 10',
-      'status': 'Completed',
-      'peopleFed': 10,
-    },
-    {
-      'name': 'Fresh Bread',
-      'date': 'Dec 22, 2025',
-      'quantity': '20 pieces',
-      'status': 'Completed',
-      'peopleFed': 8,
-    },
-    {
-      'name': 'Rice and Dal',
-      'date': 'Dec 20, 2025',
-      'quantity': 'Serves 20',
-      'status': 'Cancelled',
-      'peopleFed': 0,
-    },
-  ];
+// --- HISTORY TAB (Connected to API) ---
+class _HistoryTab extends StatefulWidget {
+  const _HistoryTab({Key? key}) : super(key: key);
+
+  @override
+  State<_HistoryTab> createState() => _HistoryTabState();
+}
+
+class _HistoryTabState extends State<_HistoryTab> {
+  final ApiService _apiService = ApiService();
+  late Future<List<dynamic>> _historyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyFuture = _fetchHistory();
+  }
+
+  Future<List<dynamic>> _fetchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final userId = prefs.getInt('userId'); // Auto-get Restaurant ID
+
+    if (token != null && userId != null) {
+      return _apiService.getDonationHistory(token, userId);
+    } else {
+      throw Exception("User not logged in");
+    }
+  }
+
+  // Helper to format ISO date (2026-01-13...) to readable string
+  String _formatDate(String? isoDate) {
+    if (isoDate == null) return "Unknown Date";
+    try {
+      final dt = DateTime.parse(isoDate);
+      return DateFormat('MMM dd, yyyy').format(dt);
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  // Helper for Status Colors
+  Color _getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'COMPLETED': return Colors.green;
+      case 'CLAIMED': return Colors.blue;
+      case 'EXPIRED': return Colors.red;
+      case 'CANCELLED': return Colors.orange;
+      default: return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: history.length,
-      itemBuilder: (context, index) {
-        final item = history[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return FutureBuilder<List<dynamic>>(
+      future: _historyFuture,
+      builder: (context, snapshot) {
+        // 1. Loading State
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+
+        // 2. Error State
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        // 3. Empty State
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text("No history found."));
+        }
+
+        final historyList = snapshot.data!;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: historyList.length,
+          itemBuilder: (context, index) {
+            final item = historyList[index];
+
+            // --- DATA MAPPING ---
+            // Extracting ONLY the requested fields
+            final String name = item['foodDescription'] ?? 'Unknown Item';
+            final String quantity = "${item['quantityKg']} kg"; // Adding 'kg' label
+            final String status = item['status'] ?? 'Unknown';
+            final String date = _formatDate(item['mustPickupBy']); // Using pickup date for display
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        item['name'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                    // Title and Status Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name, // foodDescription
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                         ),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            status, // status
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: _getStatusColor(status),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: item['status'] == 'Completed'
-                            ? AppColors.success.withOpacity(0.1)
-                            : AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        item['status'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: item['status'] == 'Completed'
-                              ? AppColors.success
-                              : AppColors.error,
+                    const SizedBox(height: 8),
+                    
+                    // Date and Quantity Row
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          date, // Formatted Date
+                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         ),
-                      ),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.scale_rounded, size: 14, color: AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          quantity, // quantityKg
+                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    Text(
-                      item['date'],
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(width: 16),
-                    const Icon(Icons.restaurant_rounded, size: 14, color: AppColors.textSecondary),
-                    const SizedBox(width: 6),
-                    Text(
-                      item['quantity'],
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-                if (item['status'] == 'Completed') ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.people_rounded, size: 14, color: AppColors.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${item['peopleFed']} people fed',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 }
 
+// --- CERTIFICATES TAB (Static Data for now) ---
 class _CertificatesTab extends StatelessWidget {
   final List<Map<String, String>> certificates = [
     {
@@ -183,18 +218,7 @@ class _CertificatesTab extends StatelessWidget {
       'peopleFed': '87',
       'co2Saved': '45 kg',
     },
-    {
-      'month': 'November 2025',
-      'donations': '12',
-      'peopleFed': '124',
-      'co2Saved': '67 kg',
-    },
-    {
-      'month': 'October 2025',
-      'donations': '6',
-      'peopleFed': '58',
-      'co2Saved': '32 kg',
-    },
+    // ... other certs
   ];
 
   @override
@@ -211,7 +235,6 @@ class _CertificatesTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   children: [
                     Container(
@@ -251,10 +274,7 @@ class _CertificatesTab extends StatelessWidget {
                     ),
                   ],
                 ),
-                
                 const SizedBox(height: 20),
-                
-                // Stats
                 Row(
                   children: [
                     Expanded(
@@ -277,34 +297,6 @@ class _CertificatesTab extends StatelessWidget {
                         label: 'CO₂ Saved',
                         value: cert['co2Saved']!,
                       ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                const Divider(),
-                
-                const SizedBox(height: 12),
-                
-                // Actions
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.download_rounded),
-                      label: const Text('Download'),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 24,
-                      color: AppColors.divider,
-                    ),
-                    TextButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.share_rounded),
-                      label: const Text('Share'),
                     ),
                   ],
                 ),
