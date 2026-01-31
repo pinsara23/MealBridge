@@ -1,6 +1,7 @@
 package org.se.mealbridge.controller;
 
 import org.se.mealbridge.dto.LoginRequest;
+import org.se.mealbridge.dto.LoginResponse;
 import org.se.mealbridge.entity.AdminEntity;
 import org.se.mealbridge.entity.RestaurantEntity;
 import org.se.mealbridge.entity.VolunteerEntity;
@@ -37,7 +38,7 @@ public class AuthController {
 
     // /api/auth/login
     @PostMapping("/login")
-    public Map<String,Object> login(@RequestBody LoginRequest request){
+    public LoginResponse login(@RequestBody LoginRequest request){
 
         //authenticate password
         Authentication auth = authenticationManager.authenticate(
@@ -77,12 +78,12 @@ public class AuthController {
         String token = jwtUtil.generateToken(request.getEmail(), role);
 
         //return
-        Map<String,Object> response = new HashMap<>();
-        response.put("token",token);
-        response.put("role",role);
-        response.put("userId",userId);
-        response.put("name",name);
+        //        Map<String,Object> response = new HashMap<>();
+//        response.put("token",token);
+//        response.put("role",role);
+//        response.put("userId",userId);
+//        response.put("name",name);
 
-        return response;
+        return new LoginResponse(token,name,role,userId);
     }
 }

@@ -43,7 +43,7 @@ public class DonationEntity {
     @JoinColumn(name = "restaurant_details_id", nullable = false)
     private RestaurantEntity donor;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "volunteer_details_id")
     private VolunteerEntity assignedVolunteer;
 

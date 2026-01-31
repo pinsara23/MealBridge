@@ -3,6 +3,7 @@ package org.se.mealbridge.services;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.se.mealbridge.dto.DonationsDto;
+import org.se.mealbridge.dto.VolunteerDto;
 import org.se.mealbridge.entity.DonationEntity;
 import org.se.mealbridge.entity.DonationStatus;
 import org.se.mealbridge.entity.RestaurantEntity;
@@ -209,7 +210,22 @@ public class DonationService {
         return donationHistory.stream().map(this::convertToDto).toList();
     }
 
+    public VolunteerDto getVolunteerDetailsByDonationId(Long donationId){
 
+        DonationEntity donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        VolunteerEntity volunteer = donation.getAssignedVolunteer();
+
+        if (volunteer == null){
+            return null;
+        }
+
+        VolunteerDto volunteerDto = modelMapper.map(volunteer, VolunteerDto.class);
+        volunteerDto.setPassword(null);
+        volunteerDto.setMessage(null);
+        return volunteerDto;
+    }
 
 
 
