@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +33,9 @@ public class AnalyticalService {
     private ModelMapper modelMapper;
     @Autowired
     private VolunteerRepository volunteerRepository;
+
+    @Value("${ML_API_URL:http://localhost:5000/predict}")
+    private String mlUrl;
 
     private DonationsDto convertToDto(DonationEntity donationEntity) {
         DonationsDto donationsDto = modelMapper.map(donationEntity, DonationsDto.class);
@@ -188,7 +192,8 @@ public class AnalyticalService {
 
         List<DayStats> dayStats = getDayStatsForMlModel(restaurantId);
 
-        final String mlUrl = "http://localhost:5000/predict";
+
+
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -196,7 +201,7 @@ public class AnalyticalService {
         HttpEntity<List<DayStats>> requestEntity = new HttpEntity<>(dayStats,headers);
 
         try{
-            ResponseEntity<Map> response = restTemplate.postForEntity(mlUrl, requestEntity, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(this.mlUrl, requestEntity, Map.class);
 
             if (response.getBody() != null && response.getBody().containsKey("predictedQuantity")){
                 return Double.parseDouble(response.getBody().get("predictedQuantity").toString());
