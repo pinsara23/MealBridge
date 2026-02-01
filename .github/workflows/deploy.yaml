@@ -38,8 +38,8 @@ jobs:
       - name: Build Python ML Image
         uses: docker/build-push-action@v5
         with:
-          context: ./ml-service   # Python files are in this folder
-          file: ./ml-service/Dockerfile
+          context: ./ML_Model   # Python files are in this folder
+          file: ./ML_Model/Dockerfile
           push: true
           # Note the different image name (-ml)
           tags: ${{ secrets.DOCKER_USERNAME }}/meal-bridge-ml:latest
