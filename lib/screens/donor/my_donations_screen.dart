@@ -56,7 +56,20 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Active Donations'),
+        title: const Text(
+          'My Active Donations',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        ),
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.primaryDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       // 2. Refresh Indicator (Pull-to-Refresh)
       body: RefreshIndicator(
@@ -139,109 +152,276 @@ class _DonationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppColors.primary.withOpacity(0.04),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row with Icon and Title
+                Row(
+                  children: [
+                    // Icon Container with Gradient
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            isVeg ? Colors.green.shade400 : Colors.orange.shade400,
+                            isVeg ? Colors.green.shade600 : Colors.orange.shade600,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isVeg 
+                                ? Colors.green.withOpacity(0.3)
+                                : Colors.orange.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
+                        color: Colors.white,
+                        size: 26,
                       ),
                     ),
-                  ),
-                  // If you removed FoodTypeChip, use a simple Icon/Text instead
-                  Icon(
-                    isVeg ? Icons.eco : Icons.restaurant, 
-                    color: isVeg ? Colors.green : Colors.redAccent
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Quantity
-              Row(
-                children: [
-                  const Icon(Icons.scale_rounded, size: 18, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Text(
-                    quantity,
-                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 8),
-              
-              // Time (Pickup By)
-              Row(
-                children: [
-                  const Icon(Icons.access_time_filled, size: 18, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Pickup by: $time",
-                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Status and Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Simple Status Chip logic since widget file might be missing
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _getStatusColor(status)),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        color: _getStatusColor(status),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    const SizedBox(width: 16),
+                    // Title
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Info Row - Quantity and Time
+                Row(
+                  children: [
+                    // Quantity Badge
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.12),
+                              AppColors.primary.withOpacity(0.06),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.scale_rounded,
+                              size: 20,
+                              color: AppColors.primary.withOpacity(0.9),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              quantity,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: AppColors.primary.withOpacity(0.95),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Pickup Time
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.textSecondary.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  
-                  Row(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_rounded),
-                        onPressed: () {},
-                        color: AppColors.primary,
-                        iconSize: 20,
+                      Icon(
+                        Icons.access_time_filled_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary.withOpacity(0.8),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_rounded),
-                        onPressed: () {},
-                        color: AppColors.error, // Colors.red
-                        iconSize: 20,
+                      const SizedBox(width: 8),
+                      Text(
+                        "Pickup: $time",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary.withOpacity(0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Status and Actions Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Status Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _getStatusColor(status).withOpacity(0.18),
+                            _getStatusColor(status).withOpacity(0.10),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: _getStatusColor(status).withOpacity(0.6),
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(status),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getStatusColor(status).withOpacity(0.5),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                              color: _getStatusColor(status),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        // Edit Button
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.primary.withOpacity(0.15),
+                                AppColors.primary.withOpacity(0.08),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.edit_rounded),
+                            onPressed: () {},
+                            color: AppColors.primary,
+                            iconSize: 22,
+                            tooltip: 'Edit',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Delete Button
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.error.withOpacity(0.15),
+                                AppColors.error.withOpacity(0.08),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.error.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_rounded),
+                            onPressed: () {},
+                            color: AppColors.error,
+                            iconSize: 22,
+                            tooltip: 'Delete',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

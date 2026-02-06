@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http; 
@@ -360,18 +361,52 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Donor Dashboard'),
+        title: const Text(
+          'Donor Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        ),
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white.withOpacity(0.9),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withOpacity(0.1),
+                    AppColors.secondary.withOpacity(0.05),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         actions: [
           FutureBuilder<Map<String, dynamic>>(
             future: _restaurantDetailsFuture,
             builder: (context, snapshot) {
               return Container(
                 margin: const EdgeInsets.only(right: 16),
-                decoration: const BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, AppColors.secondary]), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: IconButton(
-                  icon: const Icon(Icons.store_rounded, color: Colors.white),
+                  icon: const Icon(Icons.store_rounded, color: Colors.white, size: 22),
                   onPressed: () {
                     if (snapshot.hasData) _showProfileDialog(snapshot.data!);
                   },
@@ -382,11 +417,33 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         ],
       ),
       
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _handleScan,
-        label: const Text("Scan QR"),
-        icon: const Icon(Icons.qr_code_scanner),
-        backgroundColor: AppColors.primary,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: _handleScan,
+          label: const Text(
+            "Scan QR",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          icon: const Icon(Icons.qr_code_scanner, size: 24),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       ),
 
       body: RefreshIndicator(

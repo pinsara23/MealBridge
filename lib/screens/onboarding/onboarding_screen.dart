@@ -66,7 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   padding: const EdgeInsets.all(16),
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppRoutes.roleSelection);
+                      Navigator.pushReplacementNamed(context, AppRoutes.login);
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -120,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 text: _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
                 onPressed: () {
                   if (_currentPage == _pages.length - 1) {
-                    Navigator.pushReplacementNamed(context, AppRoutes.roleSelection);
+                    Navigator.pushReplacementNamed(context, AppRoutes.login);
                   } else {
                     _pageController.nextPage(
                       duration: const Duration(milliseconds: 300),
