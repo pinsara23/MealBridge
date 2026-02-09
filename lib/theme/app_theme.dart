@@ -14,8 +14,10 @@ class AppTheme {
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         error: AppColors.error,
-        background: AppColors.background,
         surface: AppColors.cardBackground,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: AppColors.textPrimary,
       ),
       
       // App Bar Theme
@@ -34,10 +36,11 @@ class AppTheme {
       // Card Theme
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        elevation: 0,
+        shadowColor: Colors.black.withOpacity(0.08),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.black.withOpacity(0.04)),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
@@ -116,8 +119,9 @@ class AppTheme {
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+        elevation: 0,
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
       ),
       
       // Text Theme

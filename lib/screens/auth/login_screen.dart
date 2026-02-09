@@ -196,20 +196,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Welcome Back!',
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
                         color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
                       ),
                       textAlign: TextAlign.center,
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
-                    const Text(
-                      'Login to continue',
+                    Text(
+                      'Sign in to continue your mission',
                       style: TextStyle(
-                        fontSize: 17,
-                        color: AppColors.textSecondary,
+                        fontSize: 15,
+                        color: AppColors.textSecondary.withOpacity(0.7),
                         fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
@@ -221,28 +222,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
+                        color: const Color(0xFFF8FAFB),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.black.withOpacity(0.06)),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedRole,
                           isExpanded: true,
-                          icon: const Icon(Icons.arrow_drop_down_circle, color: AppColors.primary),
+                          icon: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary.withOpacity(0.7)),
+                          borderRadius: BorderRadius.circular(14),
+                          dropdownColor: Colors.white,
                           items: _roles.map((String role) {
                             IconData icon;
-                            if (role == 'Restaurant') icon = Icons.restaurant;
-                            else if (role == 'Volunteer') icon = Icons.volunteer_activism;
-                            else icon = Icons.admin_panel_settings;
+                            Color iconColor;
+                            if (role == 'Restaurant') {
+                              icon = Icons.restaurant_rounded;
+                              iconColor = AppColors.primary;
+                            } else if (role == 'Volunteer') {
+                              icon = Icons.volunteer_activism_rounded;
+                              iconColor = AppColors.volunteer;
+                            } else {
+                              icon = Icons.admin_panel_settings_rounded;
+                              iconColor = AppColors.admin;
+                            }
 
                             return DropdownMenuItem<String>(
                               value: role,
                               child: Row(
                                 children: [
-                                  Icon(icon, size: 20, color: Colors.grey[700]),
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: iconColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(icon, size: 18, color: iconColor),
+                                  ),
                                   const SizedBox(width: 12),
-                                  Text(role, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                  Text(role, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                                 ],
                               ),
                             );

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../theme/colors.dart';
 import '../../widgets/custom_button.dart';
@@ -31,21 +32,78 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: const Color(0xFFF9FBFF),
       appBar: AppBar(
-        title: const Text('Confirm Pickup/Drop'),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Scan QR'),
-            Tab(text: 'Enter Code'),
-          ],
+        title: const Text(
+          'Verification',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.black.withOpacity(0.05),
+                    width: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: AppColors.textSecondary.withOpacity(0.6),
+              indicator: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              tabs: const [
+                Tab(text: 'Scan QR'),
+                Tab(text: 'Enter Code'),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const BouncingScrollPhysics(),
         children: [
           _buildScanTab(),
           _buildManualTab(),
@@ -56,60 +114,86 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
 
   Widget _buildScanTab() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 160, 24, 40),
       child: Column(
         children: [
-          // Scanner Placeholder
+          // Scanner UI
           Expanded(
             child: Container(
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  // Camera view placeholder
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 250,
-                          height: 250,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.primary, width: 3),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.qr_code_scanner_rounded,
-                              size: 100,
-                              color: AppColors.primary,
+                  // Animated Scanner Border
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(seconds: 2),
+                    builder: (context, value, child) {
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 260,
+                            height: 260,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white.withOpacity(0.1), width: 2),
+                              borderRadius: BorderRadius.circular(32),
                             ),
                           ),
+                          // Corner brackets
+                          ..._buildCorners(),
+                        ],
+                      );
+                    },
+                  ),
+                  
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_scanner_rounded,
+                        size: 80,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Scanning for QR Code...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.5),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1,
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Position QR code within frame',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   
                   // Flash Toggle
                   Positioned(
-                    top: 16,
-                    right: 16,
-                    child: IconButton(
-                      icon: const Icon(Icons.flash_on_rounded),
-                      onPressed: () {},
-                      color: Colors.white,
-                      iconSize: 28,
+                    top: 24,
+                    right: 24,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.flashlight_on_rounded),
+                        onPressed: () {},
+                        color: Colors.white,
+                        iconSize: 22,
+                      ),
                     ),
                   ),
                 ],
@@ -117,25 +201,35 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
             ),
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           
           // Instructions
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.info.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.primary.withOpacity(0.1)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_rounded, color: AppColors.info),
-                SizedBox(width: 12),
-                Expanded(
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
                   child: Text(
-                    'Ask the donor/recipient to show their QR code',
+                    'Position the QR code shown by the restaurant or recipient within the frame.',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      height: 1.4,
                     ),
                   ),
                 ),
@@ -147,126 +241,179 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
     );
   }
 
+  List<Widget> _buildCorners() {
+    return [
+      Positioned(top: 0, left: 0, child: _Corner(angle: 0)),
+      Positioned(top: 0, right: 0, child: _Corner(angle: 90)),
+      Positioned(bottom: 0, left: 0, child: _Corner(angle: 270)),
+      Positioned(bottom: 0, right: 0, child: _Corner(angle: 180)),
+    ].map((w) => Container(
+      width: 260,
+      height: 260,
+      padding: const EdgeInsets.all(0),
+      child: Stack(children: [w]),
+    )).toList();
+  }
+
   Widget _buildManualTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 160, 24, 40),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 20),
-          
-          // Illustration
+          // Illustration/Icon
           Center(
             child: Container(
-              width: 150,
-              height: 150,
+              padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.pin_rounded,
-                size: 80,
+                Icons.keyboard_outlined,
+                size: 64,
                 color: AppColors.primary,
               ),
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           
           const Text(
-            'Enter Verification Code',
+            'Manual Entry',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
+              letterSpacing: -0.5,
             ),
             textAlign: TextAlign.center,
           ),
           
           const SizedBox(height: 12),
           
-          const Text(
-            'Ask for the verification code from the donor or recipient and enter it below.',
+          Text(
+            'Request the verification code from the partner and enter it below to confirm.',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondary.withOpacity(0.7),
               height: 1.5,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           
           // Code Input
-          CustomTextField(
-            label: 'Verification Code',
-            hint: 'e.g., P1234 or D5678',
+          TextField(
             controller: _codeController,
-            keyboardType: TextInputType.text,
-            prefixIcon: Icons.lock_rounded,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 8,
+              color: AppColors.primary,
+            ),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              hintText: 'CODE123',
+              hintStyle: TextStyle(
+                color: AppColors.textSecondary.withOpacity(0.2),
+                letterSpacing: 4,
+                fontSize: 20,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF1F5F9),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 20),
+            ),
           ),
           
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           
           // Info Box
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.info_rounded, color: AppColors.warning, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 20),
+                    const SizedBox(width: 12),
                     Text(
-                      'Important',
+                      'Information',
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary.withOpacity(0.8),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
-                Text(
-                  '• Pickup codes start with P\n'
-                  '• Drop codes start with D\n'
-                  '• Codes are case-sensitive\n'
-                  '• Each code can only be used once',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
+                const SizedBox(height: 16),
+                _buildTipItem('Pickup codes usually start with P'),
+                _buildTipItem('Drop-off codes usually start with D'),
+                _buildTipItem('Codes are sensitive for security'),
               ],
             ),
           ),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           
           // Verify Button
-          CustomButton(
-            text: 'Verify Code',
-            onPressed: _handleVerify,
-            icon: Icons.check_circle_rounded,
+          SizedBox(
+            height: 60,
+            child: ElevatedButton(
+              onPressed: _handleVerify,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 0,
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.verified_rounded, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Verify & Confirm',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Alternative Action
-          Center(
-            child: TextButton(
-              onPressed: () {
-                _tabController.animateTo(0);
-              },
-              child: const Text('Scan QR Code Instead'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: TextStyle(color: AppColors.textSecondary.withOpacity(0.4))),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary.withOpacity(0.6),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -288,51 +435,91 @@ class _QRScanScreenState extends State<QRScanScreen> with SingleTickerProviderSt
     // Simulate verification
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                shape: BoxShape.circle,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  size: 56,
+                  color: Color(0xFF10B981),
+                ),
               ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                size: 50,
-                color: AppColors.success,
+              const SizedBox(height: 24),
+              const Text(
+                'Verification Success',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Verified!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+              const SizedBox(height: 8),
+              const Text(
+                'Mission stage confirmed. You can now proceed to the next step.',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Pickup confirmed successfully',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Complete Mission',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: 'Continue',
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Corner extends StatelessWidget {
+  final double angle;
+  const _Corner({required this.angle});
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: angle * 3.14159 / 180,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppColors.primary, width: 4),
+            left: BorderSide(color: AppColors.primary, width: 4),
+          ),
+          borderRadius: BorderRadius.only(topLeft: Radius.circular(12)),
         ),
       ),
     );

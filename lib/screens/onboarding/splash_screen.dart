@@ -50,14 +50,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              AppColors.primary.withOpacity(0.8),
-              AppColors.primary,
-              AppColors.primary.withOpacity(0.9),
+              Color(0xFF43A047),
+              Color(0xFF2E7D32),
+              Color(0xFF1B5E20),
             ],
           ),
         ),
@@ -88,37 +88,54 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.food_bank_rounded,
-                          size: 80,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // App Name
-                      const Text(
-                        AppConstants.appName,
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Icon(
+                              Icons.food_bank_rounded,
+                              size: 72,
+                              color: AppColors.primary,
+                            ),
+                            Positioned(
+                              bottom: 18,
+                              right: 18,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.secondary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.favorite_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 28),
+                      // App Name
+                      const Text(
+                        AppConstants.appName,
+                        style: TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       // Tagline
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
                         ),
                         child: const Text(
                           AppConstants.appTagline,

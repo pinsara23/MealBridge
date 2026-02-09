@@ -45,9 +45,11 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Claim Food'),
+        title: const Text('Claim Food', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
       ),
-      body: SingleChildScrollView(
+      body: Container(
+        color: const Color(0xFFF9FBFF),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
@@ -56,11 +58,11 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
             children: [
               // Info Card
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  color: AppColors.primary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.12)),
                 ),
                 child: const Row(
                   children: [
@@ -100,11 +102,14 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
               
               // Delivery Option
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4)),
+                  ],
+                  border: Border.all(color: Colors.grey.withOpacity(0.08)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,8 +117,8 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
                     const Text(
                       'Delivery Option',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -158,11 +163,11 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
               
               // Important Notice
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                  color: AppColors.warning.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.warning.withOpacity(0.15)),
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,6 +216,7 @@ class _ClaimFoodScreenState extends State<ClaimFoodScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

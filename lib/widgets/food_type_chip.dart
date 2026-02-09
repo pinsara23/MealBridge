@@ -11,34 +11,33 @@ class FoodTypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = isVeg ? AppColors.veg : AppColors.nonVeg;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isVeg ? AppColors.veg.withOpacity(0.15) : AppColors.nonVeg.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isVeg ? AppColors.veg : AppColors.nonVeg,
-          width: 1.5,
+          color: color.withOpacity(0.3),
+          width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isVeg ? AppColors.veg : AppColors.nonVeg,
-            ),
+          Icon(
+            isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
+            size: 13,
+            color: color,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             isVeg ? 'VEG' : 'NON-VEG',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: isVeg ? AppColors.veg : AppColors.nonVeg,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.5,
             ),
           ),
         ],

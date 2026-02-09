@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Add intl to pubspec.yaml for time formatting
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_button.dart'; // Assuming you have this from Login
 import '../../widgets/custom_text_field.dart'; // Assuming you have this from Login
+import '../common/location_picker_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -62,16 +64,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _getLocation() {
-    // For demo/simplicity, we set the example coordinates provided.
-    // In a real app, use the 'geolocator' package here.
-    setState(() {
-      _latitude = 6.8471142813513906;
-      _longitude = 79.94666928256423;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Location retrieved successfully! 📍"), backgroundColor: Colors.green),
+  Future<void> _getLocation() async {
+    // Open the map-based location picker
+    final LatLng? result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialLatitude: _latitude,
+          initialLongitude: _longitude,
+        ),
+      ),
     );
+
+    if (result != null) {
+      setState(() {
+        _latitude = result.latitude;
+        _longitude = result.longitude;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Location set successfully! 📍"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleRegister() async {

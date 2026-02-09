@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/colors.dart';
 import '../../utils/constants.dart';
-import '../../widgets/food_type_chip.dart';
 import '../../widgets/urgency_badge.dart';
 import '../../widgets/custom_button.dart';
 
@@ -10,32 +10,48 @@ class FoodDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mock data
-    final donation = {
-      'name': 'Rice and Curry',
-      'quantity': 'Serves 10 people',
-      'distance': '0.5 km',
-      'pickup': '5:00 PM - 7:00 PM',
-      'isVeg': true,
-      'urgency': 'Urgent (Within 1 hour)',
-      'donor': 'Green Valley Restaurant',
-      'donorPhone': '+1 234 567 8900',
-      'location': '123 Main Street, City Center',
-      'description': 'Fresh home-cooked rice and curry with vegetables. Properly packaged and ready for pickup.',
-      'postedTime': '30 mins ago',
-    };
+    // Read the real donation from route arguments
+    final routeArgs = ModalRoute.of(context)?.settings.arguments;
+    final donation = (routeArgs is Map<String, dynamic>)
+        ? routeArgs
+        : <String, dynamic>{
+            'name': 'Food Donation',
+            'quantity': '',
+            'pickup': '',
+            'urgency': 'Low',
+            'donor': 'Unknown',
+            'donorPhone': '',
+            'location': '',
+            'description': '',
+          };
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Food Details'),
+        title: const Text('Food Details', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_border_rounded),
-            onPressed: () {},
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+              onPressed: () {},
+              color: AppColors.primary,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            onPressed: () {},
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.share_rounded, size: 20),
+              onPressed: () {},
+              color: AppColors.primary,
+            ),
           ),
         ],
       ),
@@ -47,11 +63,38 @@ class FoodDetailsScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               height: 250,
-              color: AppColors.surfaceLight,
-              child: const Icon(
-                Icons.fastfood_rounded,
-                size: 80,
-                color: AppColors.textHint,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary.withOpacity(0.08), AppColors.primary.withOpacity(0.15)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.fastfood_rounded,
+                      size: 56,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Food Photo',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary.withOpacity(0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
             
@@ -61,7 +104,7 @@ class FoodDetailsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Urgency Badge
-                  UrgencyBadge(urgencyLevel: donation['urgency'] as String),
+                  UrgencyBadge(urgencyLevel: (donation['urgency'] as String?) ?? 'Low'),
                   
                   const SizedBox(height: 16),
                   
@@ -71,22 +114,22 @@ class FoodDetailsScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          donation['name'] as String,
+                          (donation['name'] as String?) ?? 'Food Donation',
                           style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
                             color: AppColors.textPrimary,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ),
-                      FoodTypeChip(isVeg: donation['isVeg'] as bool),
                     ],
                   ),
                   
                   const SizedBox(height: 8),
                   
                   Text(
-                    'Posted ${donation['postedTime']}',
+                    donation['donor'] as String? ?? '',
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -102,15 +145,15 @@ class FoodDetailsScreen extends StatelessWidget {
                         child: _InfoCard(
                           icon: Icons.restaurant_rounded,
                           label: 'Quantity',
-                          value: donation['quantity'] as String,
+                          value: (donation['quantity'] as String?) ?? '',
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _InfoCard(
-                          icon: Icons.location_on_rounded,
-                          label: 'Distance',
-                          value: donation['distance'] as String,
+                          icon: Icons.schedule_rounded,
+                          label: 'Hours Valid',
+                          value: '${donation['hoursValid'] ?? '—'} hrs',
                           valueColor: AppColors.primary,
                         ),
                       ),
@@ -123,16 +166,17 @@ class FoodDetailsScreen extends StatelessWidget {
                   const Text(
                     'Description',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   
                   const SizedBox(height: 8),
                   
                   Text(
-                    donation['description'] as String,
+                    (donation['description'] as String?) ?? (donation['name'] as String?) ?? '',
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -144,11 +188,11 @@ class FoodDetailsScreen extends StatelessWidget {
                   
                   // Pickup Details
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                      color: AppColors.info.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.info.withOpacity(0.15)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +217,7 @@ class FoodDetailsScreen extends StatelessWidget {
                             const Icon(Icons.access_time_rounded, size: 18, color: AppColors.textSecondary),
                             const SizedBox(width: 8),
                             Text(
-                              'Pickup Window: ${donation['pickup']}',
+                              'Pickup by: ${(donation['pickup'] as String?) ?? 'N/A'}',
                               style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                             ),
                           ],
@@ -186,7 +230,9 @@ class FoodDetailsScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                donation['location'] as String,
+                                (donation['location'] as String?)?.isNotEmpty == true
+                                    ? donation['location'] as String
+                                    : 'See map below',
                                 style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                               ),
                             ),
@@ -202,26 +248,94 @@ class FoodDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   
+                  const SizedBox(height: 16),
+
+                  // Location Map Preview
+                  if (donation['latitude'] != null && donation['longitude'] != null)
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: Colors.grey.withOpacity(0.12)),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        children: [
+                          GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: LatLng(
+                                (donation['latitude'] as num).toDouble(),
+                                (donation['longitude'] as num).toDouble(),
+                              ),
+                              zoom: 15,
+                            ),
+                            markers: {
+                              Marker(
+                                markerId: const MarkerId('pickup'),
+                                position: LatLng(
+                                  (donation['latitude'] as num).toDouble(),
+                                  (donation['longitude'] as num).toDouble(),
+                                ),
+                                infoWindow: InfoWindow(title: (donation['donor'] as String?) ?? 'Restaurant'),
+                              ),
+                            },
+                            zoomControlsEnabled: false,
+                            scrollGesturesEnabled: false,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
+                            myLocationButtonEnabled: false,
+                            mapToolbarEnabled: false,
+                          ),
+                          Positioned(
+                            bottom: 10,
+                            right: 10,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.directions_rounded, color: Colors.white, size: 16),
+                                  SizedBox(width: 6),
+                                  Text('Directions', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  
                   const SizedBox(height: 24),
                   
                   // Donor Details
                   const Text(
                     'Donor Information',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   
                   const SizedBox(height: 12),
                   
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
+                      border: Border.all(color: Colors.grey.withOpacity(0.08)),
                     ),
                     child: Row(
                       children: [
@@ -243,7 +357,7 @@ class FoodDetailsScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                donation['donor'] as String,
+                                (donation['donor'] as String?) ?? 'Restaurant',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -252,7 +366,9 @@ class FoodDetailsScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                donation['donorPhone'] as String,
+                                (donation['donorPhone'] as String?)?.isNotEmpty == true
+                                    ? donation['donorPhone'] as String
+                                    : 'Phone not available',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
@@ -308,21 +424,31 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(color: AppColors.primary.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: AppColors.primary.withOpacity(0.08)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary, size: 28),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
+          const SizedBox(height: 10),
           Text(
             value,
             style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: valueColor ?? AppColors.textPrimary,
             ),
             textAlign: TextAlign.center,
@@ -333,6 +459,7 @@ class _InfoCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

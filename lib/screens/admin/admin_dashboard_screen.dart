@@ -269,71 +269,131 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _loadAllData,
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh_rounded, size: 22),
+              onPressed: _loadAllData,
+              color: AppColors.primary,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.account_circle_rounded, size: 28),
-            onPressed: _showProfileDialog,
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.admin, Color(0xFF78909C)],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.admin.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.person_rounded, color: Colors.white, size: 22),
+              onPressed: _showProfileDialog,
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.admin, AppColors.admin.withOpacity(0.7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        ? const Center(child: CircularProgressIndicator(color: AppColors.primary)) 
+        : Container(
+          color: const Color(0xFFF9FBFF),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF455A64), Color(0xFF37474F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.admin.withOpacity(0.3),
+                        blurRadius: 25,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          const Expanded(
+                            child: Text('System Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '${_stats['totalDonations']} total donations processed',
+                        style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('System Overview', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 8),
-                    Text('Total Donations: ${_stats['totalDonations']}', style: const TextStyle(fontSize: 16, color: Colors.white)),
-                  ],
-                ),
-              ),
               
               const SizedBox(height: 24),
               
               // --- KEY METRICS ---
               Row(
                 children: [
-                  // Food Rescued (Rounded 2 Decimals)
-                  Expanded(child: _MetricCard(title: 'Food Rescued (kg)', value: '${_stats['foodRescued']}', icon: Icons.scale, color: Colors.green)),
+                  Expanded(child: _MetricCard(title: 'Food Rescued (kg)', value: '${_stats['foodRescued']}', icon: Icons.eco_rounded, color: Colors.green)),
                   const SizedBox(width: 12),
-                  Expanded(child: _MetricCard(title: 'Active Users', value: '${_stats['activeUsers']}', icon: Icons.people, color: Colors.blue)),
+                  Expanded(child: _MetricCard(title: 'Active Users', value: '${_stats['activeUsers']}', icon: Icons.people_rounded, color: Colors.blue)),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _MetricCard(title: 'Active Donations', value: '${_stats['activeDonations']}', icon: Icons.volunteer_activism, color: Colors.orange)),
+                  Expanded(child: _MetricCard(title: 'Active Donations', value: '${_stats['activeDonations']}', icon: Icons.volunteer_activism_rounded, color: Colors.orange)),
                   const SizedBox(width: 12),
-                  Expanded(child: _MetricCard(title: 'Completed', value: '${_stats['completedDonations']}', icon: Icons.check_circle, color: Colors.purple)),
+                  Expanded(child: _MetricCard(title: 'Completed', value: '${_stats['completedDonations']}', icon: Icons.check_circle_rounded, color: Colors.purple)),
                 ],
               ),
 
-              const SizedBox(height: 24),
-              const Text('Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
+              const Text('Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
+              const SizedBox(height: 16),
 
               // 1. Manage Restaurants
               _ActionButton(
@@ -410,9 +470,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
               // --- SUPERADMIN SECTION ---
               if (_isSuperAdmin) ...[
-                const SizedBox(height: 24),
-                const Text('Super Admin', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red)),
-                const SizedBox(height: 12),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.shield_rounded, size: 18, color: Colors.red),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('Super Admin', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.red, letterSpacing: -0.5)),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 
                 Row(
                   children: [
@@ -443,6 +516,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
         ),
+      ),
     );
   }
 }
@@ -480,16 +554,34 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: color.withOpacity(0.08), width: 1),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 16),
+          Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.textPrimary, letterSpacing: -1)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -505,19 +597,43 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.admin, size: 24),
-            const SizedBox(width: 16),
-            Expanded(child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: AppColors.admin.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
+            ],
+            border: Border.all(color: AppColors.admin.withOpacity(0.08), width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.admin.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.admin, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: -0.2))),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         ),
       ),
     );

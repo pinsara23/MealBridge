@@ -23,17 +23,33 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Scan QR Code"),
+        title: const Text("Scan QR Code", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         actions: [
           // SWITCH CAMERA BUTTON (Essential for Web/Laptops)
-          IconButton(
-            icon: const Icon(Icons.cameraswitch_rounded),
-            onPressed: () => _controller.switchCamera(),
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.cameraswitch_rounded, size: 20),
+              onPressed: () => _controller.switchCamera(),
+            ),
           ),
           // TOGGLE FLASHLIGHT (Phones only)
-          IconButton(
-            icon: const Icon(Icons.flash_on_rounded),
-            onPressed: () => _controller.toggleTorch(),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.flash_on_rounded, size: 20),
+              onPressed: () => _controller.toggleTorch(),
+            ),
           ),
         ],
       ),
@@ -58,27 +74,49 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           // 2. Overlay Guide (Visual Box)
           Center(
             child: Container(
-              width: 250,
-              height: 250,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.greenAccent, width: 4),
-                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF66BB6A), width: 3),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF66BB6A).withOpacity(0.3),
+                    blurRadius: 24,
+                    spreadRadius: 4,
+                  ),
+                ],
               ),
             ),
           ),
           
           // 3. Instruction Text
-          const Positioned(
-            bottom: 50,
-            left: 0,
-            right: 0,
-            child: Text(
-              "Point camera at the Volunteer's QR Code",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white, 
-                fontSize: 16, 
-                backgroundColor: Colors.black54
+          Positioned(
+            bottom: 60,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.qr_code_scanner_rounded, color: Colors.white70, size: 20),
+                  SizedBox(width: 10),
+                  Text(
+                    "Point at Volunteer's QR Code",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
               ),
             ),
           )

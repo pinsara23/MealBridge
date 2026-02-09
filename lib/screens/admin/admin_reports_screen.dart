@@ -9,55 +9,85 @@ class AdminReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports & Analytics'),
+        title: const Text('Reports & Analytics', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download_rounded),
-            onPressed: () {},
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: AppColors.admin.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.file_download_rounded, size: 20),
+              onPressed: () {},
+              color: AppColors.admin,
+            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Container(
+        color: const Color(0xFFF9FBFF),
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Date Range Selector
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: AppColors.admin.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 4)),
+                ],
+                border: Border.all(color: AppColors.admin.withOpacity(0.08)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        'Report Period',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.admin.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: const Icon(Icons.date_range_rounded, color: AppColors.admin, size: 20),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Last 30 Days',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                      const SizedBox(width: 14),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Report Period',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Last 30 Days',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today_rounded),
-                    onPressed: () {},
-                    color: AppColors.primary,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -66,13 +96,27 @@ class AdminReportsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Impact Summary
-            const Text(
-              'Impact Summary',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.insights_rounded, color: AppColors.primary, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Impact Summary',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 12),
@@ -120,23 +164,40 @@ class AdminReportsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Performance Metrics
-            const Text(
-              'Performance Metrics',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.admin.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.speed_rounded, color: AppColors.admin, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Performance Metrics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 12),
             
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 16, offset: const Offset(0, 4)),
+                ],
+                border: Border.all(color: Colors.grey.withOpacity(0.08)),
               ),
               child: Column(
                 children: [
@@ -188,13 +249,27 @@ class AdminReportsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Top Performers
-            const Text(
-              'Top Performers',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.emoji_events_rounded, color: AppColors.warning, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Top Performers',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 12),
@@ -222,13 +297,27 @@ class AdminReportsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // Export Options
-            const Text(
-              'Export Reports',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.upload_file_rounded, color: AppColors.primary, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Export Reports',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             
             const SizedBox(height: 12),
@@ -265,6 +354,7 @@ class AdminReportsScreen extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -285,11 +375,14 @@ class _ChartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: AppColors.primary.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: AppColors.primary.withOpacity(0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,10 +390,10 @@ class _ChartCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: AppColors.primary, size: 20),
               ),
@@ -312,16 +405,18 @@ class _ChartCard extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -409,11 +504,14 @@ class _TopPerformerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: AppColors.warning.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: AppColors.warning.withOpacity(0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,8 +519,8 @@ class _TopPerformerCard extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
           ),
@@ -435,23 +533,26 @@ class _TopPerformerCard extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
-                      color: index == 0
-                          ? AppColors.warning.withOpacity(0.2)
-                          : AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: index == 0
+                          ? const LinearGradient(colors: [Color(0xFFFFD54F), Color(0xFFFFA726)])
+                          : null,
+                      color: index != 0 ? AppColors.primary.withOpacity(0.1) : null,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: index == 0 ? AppColors.warning : AppColors.primary,
-                        ),
-                      ),
+                      child: index == 0
+                          ? const Icon(Icons.emoji_events_rounded, color: Colors.white, size: 18)
+                          : Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),

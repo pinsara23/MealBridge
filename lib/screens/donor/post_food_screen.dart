@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/colors.dart';
@@ -16,9 +17,9 @@ class _PostFoodScreenState extends State<PostFoodScreen> {
   final _formKey = GlobalKey<FormState>();
   
   // Controllers
-  final _foodNameController = TextEditingController();
+  final _foodDescriptionController = TextEditingController();
   final _quantityController = TextEditingController();
-  final _hoursController = TextEditingController(); // <--- NEW CONTROLLER
+  final _validHoursController = TextEditingController();
   final ApiService _apiService = ApiService();
   
   // UI State (Veg/Non-Veg is here, but NOT sent to API as requested)
@@ -27,9 +28,9 @@ class _PostFoodScreenState extends State<PostFoodScreen> {
 
   @override
   void dispose() {
-    _foodNameController.dispose();
+    _foodDescriptionController.dispose();
     _quantityController.dispose();
-    _hoursController.dispose();
+    _validHoursController.dispose();
     super.dispose();
   }
 
@@ -49,13 +50,13 @@ class _PostFoodScreenState extends State<PostFoodScreen> {
 
         // 2. Prepare JSON (STRICTLY the 4 fields you asked for)
         final donationData = {
-          "foodDescription": _foodNameController.text.trim(),
+          "foodDescription": _foodDescriptionController.text.trim(),
           
           // Parse Quantity as Double (e.g. "3.5")
           "quantityKg": double.tryParse(_quantityController.text.trim()) ?? 1.0,
           
           // Parse Hours as Integer (e.g. "4")
-          "hoursValid": int.parse(_hoursController.text.trim()), 
+          "hoursValid": int.parse(_validHoursController.text.trim()), 
           
           "restaurantId": userId
         };
@@ -86,187 +87,219 @@ class _PostFoodScreenState extends State<PostFoodScreen> {
     }
   }
 
+  Widget _buildStepTitle(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary.withOpacity(0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.1),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.camera_alt_rounded,
+              size: 32,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Tap to add image',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildModernSwitch() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Vegetarian',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        Switch.adaptive(
+          value: _isVeg,
+          onChanged: (value) {
+            setState(() {
+              _isVeg = value;
+            });
+          },
+          activeColor: AppColors.primary,
+          inactiveThumbColor: AppColors.textSecondary.withOpacity(0.5),
+          inactiveTrackColor: AppColors.border,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPostButton() {
+    return CustomButton(
+      text: 'Post Donation',
+      onPressed: _handleSubmit,
+      isLoading: _isLoading,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
-          'Post Food',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          'Post Donation',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+          ),
         ),
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primaryDark],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.black.withOpacity(0.05),
+                    width: 1,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.primary.withOpacity(0.03),
-              Colors.white,
-              AppColors.secondary.withOpacity(0.02),
-            ],
-          ),
-        ),
+        height: double.infinity,
+        color: const Color(0xFFF9FBFF),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // --- Image Upload (Visual) ---
-              Container(
-                width: double.infinity,
-                height: 180,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary.withOpacity(0.08),
-                      AppColors.secondary.withOpacity(0.04),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
-                    width: 2,  
-                    strokeAlign: BorderSide.strokeAlignInside,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                _buildStepTitle('Upload Image', 'Optional but recommended'),
+                const SizedBox(height: 16),
+                _buildImagePlaceholder(),
+                const SizedBox(height: 32),
+                _buildStepTitle('Donation Details', 'Tell us what you\'re sharing'),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  label: 'Food Description',
+                  hint: 'e.g., 10 Packets of Rice And Curry',
+                  controller: _foodDescriptionController,
+                  prefixIcon: Icons.fastfood_rounded,
+                  validator: (val) => val!.isEmpty ? 'Enter description' : null,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 20),
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_rounded,
-                        size: 40,
-                        color: AppColors.primary,
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'Quantity (Kg)',
+                        hint: 'e.g., 3.5',
+                        controller: _quantityController,
+                        prefixIcon: Icons.scale_rounded,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (val) => val!.isEmpty ? 'Enter quantity' : null,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Upload Food Photo',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tap to add image',
-                      style: TextStyle(
-                        color: AppColors.textSecondary.withOpacity(0.7),
-                        fontSize: 13,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: CustomTextField(
+                        label: 'Valid For (Hours)',
+                        hint: 'e.g., 4',
+                        controller: _validHoursController,
+                        prefixIcon: Icons.timer_rounded,
+                        keyboardType: TextInputType.number,
+                        validator: (val) {
+                          if (val == null || val.isEmpty) return 'Enter hours';
+                          if (int.tryParse(val) == null) return 'Must be a whole number';
+                          return null;
+                        },
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 28),
-              
-              // --- Field 1: Description ---
-              CustomTextField(
-                label: 'Food Description',
-                hint: 'e.g., 10 Packets of Rice And Curry',
-                controller: _foodNameController,
-                prefixIcon: Icons.fastfood_rounded,
-                validator: (val) => val!.isEmpty ? 'Enter description' : null,
-              ),
-              const SizedBox(height: 20),
-              
-              // --- Field 2: Quantity ---
-              CustomTextField(
-                label: 'Quantity (Kg)',
-                hint: 'e.g., 3.5',
-                controller: _quantityController,
-                prefixIcon: Icons.scale_rounded,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (val) => val!.isEmpty ? 'Enter quantity' : null,
-              ),
-              const SizedBox(height: 20),
-
-              // --- Field 3: Valid Hours (Integer Input) ---
-              CustomTextField(
-                label: 'Valid For (Hours)',
-                hint: 'e.g., 4',
-                controller: _hoursController,
-                prefixIcon: Icons.timer_rounded,
-                // Only allow integer numbers
-                keyboardType: TextInputType.number, 
-                validator: (val) {
-                  if (val == null || val.isEmpty) return 'Enter hours';
-                  if (int.tryParse(val) == null) return 'Must be a whole number';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // --- UI ONLY: Veg / Non-Veg (Not sent to API) ---
-              Row(
-                children: [
-                  Expanded(
-                    child: _CategoryChip(
-                      label: 'Vegetarian',
-                      icon: Icons.eco_rounded,
-                      isSelected: _isVeg,
-                      onTap: () => setState(() => _isVeg = true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _CategoryChip(
-                      label: 'Non-Veg',
-                      icon: Icons.restaurant_rounded,
-                      isSelected: !_isVeg,
-                      onTap: () => setState(() => _isVeg = false),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // --- Submit Button ---
-              CustomButton(
-                text: 'Post Donation',
-                onPressed: _handleSubmit,
-                isLoading: _isLoading,
-              ),
-            ],
+                const SizedBox(height: 24),
+                _buildModernSwitch(),
+                const SizedBox(height: 48),
+                CustomButton(
+                  text: 'Post Donation',
+                  onPressed: _handleSubmit,
+                  isLoading: _isLoading,
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

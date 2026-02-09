@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Ensure intl is in pubspec.yaml
+import 'package:intl/intl.dart';
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
+import '../../utils/constants.dart';
 // import '../../widgets/status_chip.dart'; // Uncomment if you have this file
 // import '../../widgets/food_type_chip.dart'; // Uncomment if you have this file
 
@@ -57,76 +59,135 @@ class _MyDonationsScreenState extends State<MyDonationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'My Active Donations',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          'Active Donations',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+          ),
         ),
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primaryDark],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.black.withOpacity(0.05),
+                    width: 1,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       ),
       // 2. Refresh Indicator (Pull-to-Refresh)
-      body: RefreshIndicator(
-        onRefresh: () async => _loadDonations(),
-        child: FutureBuilder<List<dynamic>>(
-          future: _donationsFuture,
-          builder: (context, snapshot) {
-            
-            // Loading
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-            }
+      body: Container(
+        color: const Color(0xFFF9FBFF),
+        child: RefreshIndicator(
+          onRefresh: () async => _loadDonations(),
+          color: AppColors.primary,
+          child: FutureBuilder<List<dynamic>>(
+            future: _donationsFuture,
+            builder: (context, snapshot) {
+              
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              }
 
-            // Error
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    Text('Error: ${snapshot.error}'),
-                    TextButton(onPressed: _loadDonations, child: const Text("Retry")),
-                  ],
-                ),
-              );
-            }
-
-            // Empty
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("No donations found. Post some food!"));
-            }
-
-            // Success: List Data
-            final donations = snapshot.data!;
-            
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: donations.length,
-              itemBuilder: (context, index) {
-                final item = donations[index];
-                
-                // Map API fields to UI
-                return _DonationCard(
-                  name: item['foodDescription'] ?? 'No Description',
-                  quantity: "${item['quantityKg']} Kg",
-                  status: item['status'] ?? 'UNKNOWN',
-                  time: _formatDate(item['mustPickupBy'] ?? ''),
-                  // API doesn't send 'isVeg' currently, defaulting to false or checking desc
-                  isVeg: false, 
-                  onTap: () {
-                    // Navigate to details if needed
-                  },
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
+                          child: const Icon(Icons.error_outline_rounded, color: Colors.red, size: 48),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Oops! Something went wrong', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        const SizedBox(height: 8),
+                        Text('${snapshot.error}', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _loadDonations,
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
-              },
-            );
-          },
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.05), shape: BoxShape.circle),
+                        child: Icon(Icons.inventory_2_outlined, color: AppColors.primary.withOpacity(0.5), size: 64),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text('No active donations', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                      const SizedBox(height: 8),
+                      const Text('Your current postings will appear here.', style: TextStyle(color: AppColors.textSecondary)),
+                      const SizedBox(height: 32),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pushNamed(context, AppRoutes.postFood),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Post Now'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          side: const BorderSide(color: AppColors.primary),
+                          foregroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final donations = snapshot.data!;
+              
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+                physics: const BouncingScrollPhysics(),
+                itemCount: donations.length,
+                itemBuilder: (context, index) {
+                  final item = donations[index];
+                  
+                  return _DonationCard(
+                    name: item['foodDescription'] ?? 'No Description',
+                    quantity: "${item['quantityKg']} Kg",
+                    status: item['status'] ?? 'UNKNOWN',
+                    time: _formatDate(item['mustPickupBy'] ?? ''),
+                    isVeg: false, 
+                    onTap: () {},
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -153,276 +214,181 @@ class _DonationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            AppColors.primary.withOpacity(0.04),
-          ],
-        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.12),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 20,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 10),
           ),
         ],
+        border: Border.all(color: Colors.black.withOpacity(0.02), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
-          child: Container(
+          child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row with Icon and Title
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Icon Container with Gradient
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            isVeg ? Colors.green.shade400 : Colors.orange.shade400,
-                            isVeg ? Colors.green.shade600 : Colors.orange.shade600,
-                          ],
-                        ),
+                        color: (isVeg ? Colors.green : Colors.orange).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isVeg 
-                                ? Colors.green.withOpacity(0.3)
-                                : Colors.orange.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: Icon(
                         isVeg ? Icons.eco_rounded : Icons.restaurant_rounded,
-                        color: Colors.white,
-                        size: 26,
+                        color: isVeg ? Colors.green : Colors.orange,
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Title
                     Expanded(
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Info Row - Quantity and Time
-                Row(
-                  children: [
-                    // Quantity Badge
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withOpacity(0.12),
-                              AppColors.primary.withOpacity(0.06),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.scale_rounded,
-                              size: 20,
-                              color: AppColors.primary.withOpacity(0.9),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              quantity,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppColors.primary.withOpacity(0.95),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // Pickup Time
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.textSecondary.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.access_time_filled_rounded,
-                        size: 18,
-                        color: AppColors.textSecondary.withOpacity(0.8),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Pickup: $time",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary.withOpacity(0.9),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                // Status and Actions Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Status Chip
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            _getStatusColor(status).withOpacity(0.18),
-                            _getStatusColor(status).withOpacity(0.10),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: _getStatusColor(status).withOpacity(0.6),
-                          width: 2,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(status),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _getStatusColor(status).withOpacity(0.5),
-                                  blurRadius: 4,
-                                  spreadRadius: 1,
-                                ),
-                              ],
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(height: 4),
                           Text(
-                            status.toUpperCase(),
-                            style: TextStyle(
-                              color: _getStatusColor(status),
-                              fontWeight: FontWeight.bold,
+                            "Expires at $time",
+                            style: const TextStyle(
                               fontSize: 13,
-                              letterSpacing: 0.5,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    // Action Buttons
-                    Row(
-                      children: [
-                        // Edit Button
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primary.withOpacity(0.15),
-                                AppColors.primary.withOpacity(0.08),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.primary.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.edit_rounded),
-                            onPressed: () {},
-                            color: AppColors.primary,
-                            iconSize: 22,
-                            tooltip: 'Edit',
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // Delete Button
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.error.withOpacity(0.15),
-                                AppColors.error.withOpacity(0.08),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.error.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_rounded),
-                            onPressed: () {},
-                            color: AppColors.error,
-                            iconSize: 22,
-                            tooltip: 'Delete',
-                          ),
-                        ),
-                      ],
-                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    _buildInfoBadge(Icons.scale_rounded, quantity, AppColors.primary),
+                    const SizedBox(width: 12),
+                    _buildStatusBadge(status),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Divider(color: AppColors.divider, height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButton(Icons.edit_rounded, 'Edit', AppColors.primary, () {}),
+                    const SizedBox(width: 12),
+                    _buildActionButton(Icons.delete_rounded, 'Remove', Colors.red, () {}),
                   ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoBadge(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    final color = _getStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onPressed) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.1), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
+import '../../services/api_service.dart';
 import '../../theme/colors.dart';
 import '../../utils/constants.dart';
-import '../../widgets/food_type_chip.dart';
 import '../../widgets/urgency_badge.dart';
 
 class RecipientHomeScreen extends StatefulWidget {
@@ -13,76 +17,178 @@ class RecipientHomeScreen extends StatefulWidget {
 
 class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
   bool _isMapView = false;
-  String _selectedFilter = 'All';
+  final String _selectedFilter = 'All';
 
-  final List<Map<String, dynamic>> _donations = [
-    {
-      'id': '1',
-      'name': 'Rice and Curry',
-      'quantity': 'Serves 10',
-      'distance': '0.5 km',
-      'pickup': '5:00 PM - 7:00 PM',
-      'isVeg': true,
-      'urgency': 'Urgent (Within 1 hour)',
-      'donor': 'Green Valley Restaurant',
-    },
-    {
-      'id': '2',
-      'name': 'Fresh Vegetables',
-      'quantity': '5 kg',
-      'distance': '1.2 km',
-      'pickup': '6:00 PM - 8:00 PM',
-      'isVeg': true,
-      'urgency': 'Moderate (Within 3 hours)',
-      'donor': 'Farm Fresh Market',
-    },
-    {
-      'id': '3',
-      'name': 'Chicken Biryani',
-      'quantity': 'Serves 15',
-      'distance': '2.3 km',
-      'pickup': '7:00 PM - 9:00 PM',
-      'isVeg': false,
-      'urgency': 'Low (Within 6 hours)',
-      'donor': 'Spice Garden',
-    },
-    {
-      'id': '4',
-      'name': 'Bread and Pastries',
-      'quantity': '20 pieces',
-      'distance': '0.8 km',
-      'pickup': '5:30 PM - 6:30 PM',
-      'isVeg': true,
-      'urgency': 'Urgent (Within 1 hour)',
-      'donor': 'City Bakery',
-    },
-  ];
+  GoogleMapController? _mapController;
+  int? _selectedMarkerIndex;
+
+  final ApiService _apiService = ApiService();
+  List<Map<String, dynamic>> _donations = [];
+  bool _isLoading = true;
+  String? _errorMsg;
+  LatLng _currentCenter = const LatLng(6.9271, 79.8612); // default Colombo
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDonations();
+  }
+
+  Future<void> _loadDonations() async {
+    setState(() { _isLoading = true; _errorMsg = null; });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) throw Exception('Not logged in');
+
+      final feed = await _apiService.getAllDonationsFeed(token);
+      final List<Map<String, dynamic>> enriched = [];
+
+      for (final item in feed) {
+        final int restaurantId = item['restaurantId'] ?? 0;
+        double? lat;
+        double? lng;
+        String? phone;
+        String? address;
+
+        // Fetch restaurant details for lat/lng
+        if (restaurantId > 0) {
+          try {
+            final details = await _apiService.getRestaurantDetails(token, restaurantId);
+            lat = (details['latitude'] as num?)?.toDouble();
+            lng = (details['longitude'] as num?)?.toDouble();
+            phone = details['phoneNumber'] as String?;
+            address = details['address'] as String?;
+          } catch (_) {}
+        }
+
+        // Derive urgency label from hoursValid
+        final int hours = item['hoursValid'] ?? 6;
+        String urgency;
+        if (hours <= 1) {
+          urgency = 'Urgent (Within 1 hour)';
+        } else if (hours <= 3) {
+          urgency = 'Moderate (Within $hours hours)';
+        } else {
+          urgency = 'Low (Within $hours hours)';
+        }
+
+        // Format pickup time
+        String pickup = '';
+        if (item['mustPickupBy'] != null) {
+          try {
+            final dt = DateTime.parse(item['mustPickupBy']);
+            pickup = DateFormat('MMM dd, hh:mm a').format(dt);
+          } catch (_) {
+            pickup = item['mustPickupBy'].toString();
+          }
+        }
+
+        enriched.add({
+          'id': item['id']?.toString() ?? '0',
+          'name': item['foodDescription'] ?? 'Food Donation',
+          'quantity': '${item['quantityKg'] ?? 0} kg',
+          'pickup': pickup,
+          'urgency': urgency,
+          'donor': item['restaurantName'] ?? 'Restaurant',
+          'restaurantId': restaurantId,
+          'latitude': lat,
+          'longitude': lng,
+          'donorPhone': phone ?? '',
+          'location': address ?? '',
+          'status': item['status'] ?? 'AVAILABLE',
+          'description': item['foodDescription'] ?? '',
+          'hoursValid': hours,
+        });
+      }
+
+      // Calculate map center from first available donation with coordinates
+      final withCoords = enriched.where((d) => d['latitude'] != null && d['longitude'] != null).toList();
+      if (withCoords.isNotEmpty) {
+        _currentCenter = LatLng(withCoords.first['latitude'], withCoords.first['longitude']);
+      }
+
+      // Try user GPS for center
+      try {
+        final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium).timeout(const Duration(seconds: 5));
+        _currentCenter = LatLng(pos.latitude, pos.longitude);
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() { _donations = enriched; _isLoading = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _isLoading = false; _errorMsg = e.toString(); });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Available Food'),
+        title: const Text('Available Food', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
         actions: [
-          IconButton(
-            icon: Icon(_isMapView ? Icons.list_rounded : Icons.map_rounded),
-            onPressed: () {
-              setState(() {
-                _isMapView = !_isMapView;
-              });
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(_isMapView ? Icons.list_rounded : Icons.map_rounded, size: 20),
+              onPressed: () {
+                setState(() {
+                  _isMapView = !_isMapView;
+                });
+              },
+              color: AppColors.primary,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
-            onPressed: _showFilterBottomSheet,
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.tune_rounded, size: 20),
+              onPressed: _showFilterBottomSheet,
+              color: AppColors.primary,
+            ),
           ),
         ],
       ),
-      body: Column(
+      body: Container(
+        color: const Color(0xFFF9FBFF),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _errorMsg != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.textSecondary),
+                          const SizedBox(height: 16),
+                          Text('Could not load donations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                          const SizedBox(height: 8),
+                          Text(_errorMsg!, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary), textAlign: TextAlign.center),
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            onPressed: _loadDonations,
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Column(
         children: [
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search for food...',
@@ -97,7 +203,7 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
           
           // View Toggle Chips
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
                 Expanded(
@@ -128,6 +234,7 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
             child: _isMapView ? _buildMapView() : _buildListView(),
           ),
         ],
+      ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
@@ -174,103 +281,201 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
     );
   }
 
+  Set<Marker> _buildMarkers() {
+    final withCoords = _donations.where((d) => d['latitude'] != null && d['longitude'] != null).toList();
+    return withCoords.asMap().entries.map((entry) {
+      final index = _donations.indexOf(entry.value);
+      final donation = entry.value;
+      final isUrgent = (donation['urgency'] as String).toLowerCase().contains('urgent');
+      return Marker(
+        markerId: MarkerId(donation['id']),
+        position: LatLng(
+          (donation['latitude'] as num).toDouble(),
+          (donation['longitude'] as num).toDouble(),
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          isUrgent ? BitmapDescriptor.hueRed : BitmapDescriptor.hueGreen,
+        ),
+        infoWindow: InfoWindow(
+          title: donation['name'],
+          snippet: donation['donor'],
+        ),
+        onTap: () {
+          setState(() => _selectedMarkerIndex = index);
+        },
+      );
+    }).toSet();
+  }
+
   Widget _buildMapView() {
     return Stack(
       children: [
-        // Map placeholder
-        Container(
-          color: AppColors.surfaceLight,
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+        // Real Google Map
+        GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: _currentCenter,
+            zoom: 14.5,
+          ),
+          markers: _buildMarkers(),
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          onMapCreated: (controller) {
+            _mapController = controller;
+          },
+          onTap: (_) {
+            setState(() => _selectedMarkerIndex = null);
+          },
+          style: _mapStyle,
+        ),
+
+        // My Location button
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3)),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.my_location_rounded, color: AppColors.primary, size: 22),
+              onPressed: () {
+                _mapController?.animateCamera(
+                  CameraUpdate.newLatLngZoom(_currentCenter, 14.5),
+                );
+              },
+            ),
+          ),
+        ),
+
+        // Legend
+        Positioned(
+          top: 16,
+          left: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3)),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.map_rounded,
-                  size: 80,
-                  color: AppColors.textHint,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Map View',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Google Maps integration here',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textHint,
-                  ),
-                ),
+                Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                const Text('Urgent', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                const SizedBox(width: 12),
+                Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                const Text('Available', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
               ],
             ),
           ),
         ),
-        
-        // Bottom Sheet with donation cards
-        DraggableScrollableSheet(
-          initialChildSize: 0.3,
-          minChildSize: 0.1,
-          maxChildSize: 0.7,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
+
+        // Bottom card when marker tapped
+        if (_selectedMarkerIndex != null)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  ),
+                  BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, -4)),
                 ],
               ),
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  
-                  // List
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _donations.length,
-                      itemBuilder: (context, index) {
-                        final donation = _donations[index];
-                        return _FoodDonationCard(
-                          donation: donation,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.foodDetails,
-                              arguments: donation,
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
+              child: _FoodDonationCard(
+                donation: _donations[_selectedMarkerIndex!],
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.foodDetails,
+                    arguments: _donations[_selectedMarkerIndex!],
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        
+        // Bottom Sheet with all donation cards (when no marker selected)
+        if (_selectedMarkerIndex == null)
+          DraggableScrollableSheet(
+            initialChildSize: 0.3,
+            minChildSize: 0.1,
+            maxChildSize: 0.7,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, -4)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 10),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.restaurant_menu_rounded, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${_donations.length} nearby donations',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: _donations.length,
+                        itemBuilder: (context, index) {
+                          final donation = _donations[index];
+                          return _FoodDonationCard(
+                            donation: donation,
+                            onTap: () {
+                              Navigator.pushNamed(context, AppRoutes.foodDetails, arguments: donation);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
       ],
     );
   }
+
+  // Subtle map style
+  static const String _mapStyle = '[]';
 
   void _showFilterBottomSheet() {
     showModalBottomSheet(
@@ -358,16 +563,19 @@ class _ViewToggleChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: 2,
+            color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.12),
+            width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: AppColors.primary.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 3)),
+          ] : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -381,8 +589,8 @@ class _ViewToggleChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
                 color: isSelected ? Colors.white : AppColors.textSecondary,
               ),
             ),
@@ -404,21 +612,32 @@ class _FoodDonationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUrgent = (donation['urgency'] as String).toLowerCase().contains('urgent');
+    final isUrgent = (donation['urgency'] as String? ?? '').toLowerCase().contains('urgent');
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: isUrgent
-            ? const BorderSide(color: AppColors.urgent, width: 2)
-            : BorderSide.none,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: isUrgent ? AppColors.urgent.withOpacity(0.08) : Colors.black.withOpacity(0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isUrgent ? AppColors.urgent.withOpacity(0.3) : Colors.grey.withOpacity(0.08),
+          width: isUrgent ? 1.5 : 1,
+        ),
       ),
-      child: InkWell(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -428,15 +647,15 @@ class _FoodDonationCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      donation['name'],
+                      donation['name'] ?? 'Food Donation',
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
                       ),
                     ),
                   ),
-                  FoodTypeChip(isVeg: donation['isVeg']),
                 ],
               ),
               
@@ -444,7 +663,7 @@ class _FoodDonationCard extends StatelessWidget {
               
               // Donor
               Text(
-                donation['donor'],
+                donation['donor'] ?? '',
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -459,43 +678,47 @@ class _FoodDonationCard extends StatelessWidget {
                   const Icon(Icons.restaurant_rounded, size: 16, color: AppColors.textSecondary),
                   const SizedBox(width: 6),
                   Text(
-                    donation['quantity'],
+                    donation['quantity'] ?? '',
                     style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    donation['distance'],
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                  if (donation['latitude'] != null) ...[
+                    const SizedBox(width: 16),
+                    const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Location available',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               
               const SizedBox(height: 8),
               
               // Pickup Time
-              Row(
-                children: [
-                  const Icon(Icons.access_time_rounded, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: 6),
-                  Text(
-                    donation['pickup'],
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
+              if ((donation['pickup'] as String? ?? '').isNotEmpty)
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      donation['pickup'] ?? '',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
               
               const SizedBox(height: 12),
               
               // Urgency Badge
-              UrgencyBadge(urgencyLevel: donation['urgency']),
+              UrgencyBadge(urgencyLevel: donation['urgency'] ?? 'Low'),
             ],
           ),
+        ),
         ),
       ),
     );

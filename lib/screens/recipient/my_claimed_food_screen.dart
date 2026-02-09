@@ -44,10 +44,12 @@ class MyClaimedFoodScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Claimed Food'),
+        title: const Text('My Claimed Food', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+      body: Container(
+        color: const Color(0xFFF9FBFF),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(20),
         itemCount: claimedFood.length,
         itemBuilder: (context, index) {
           final food = claimedFood[index];
@@ -61,6 +63,7 @@ class MyClaimedFoodScreen extends StatelessWidget {
             isVeg: food['isVeg'] as bool,
           );
         },
+      ),
       ),
     );
   }
@@ -87,10 +90,18 @@ class _ClaimedFoodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.08)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -102,9 +113,10 @@ class _ClaimedFoodCard extends StatelessWidget {
                   child: Text(
                     name,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
@@ -235,17 +247,17 @@ class _OrderTrackingBarState extends State<_OrderTrackingBar> with SingleTickerP
     ];
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.05),
-            AppColors.secondary.withOpacity(0.05),
+            AppColors.primary.withOpacity(0.04),
+            AppColors.secondary.withOpacity(0.04),
           ],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.2),
+          color: AppColors.primary.withOpacity(0.12),
           width: 1,
         ),
       ),

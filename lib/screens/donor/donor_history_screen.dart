@@ -1,6 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Add intl: ^0.18.0 to pubspec.yaml
+import 'package:intl/intl.dart';
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
 
@@ -31,30 +32,63 @@ class _DonorHistoryScreenState extends State<DonorHistoryScreen> with SingleTick
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'History & Certificates',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          'History & Impact',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+          ),
         ),
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primary, AppColors.primaryDark],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+              ),
             ),
           ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.7),
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-          tabs: const [
-            Tab(text: 'History'),
-            Tab(text: 'Certificates'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
+                  ],
+                ),
+                labelColor: AppColors.primary,
+                unselectedLabelColor: AppColors.textSecondary,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                indicatorSize: TabBarIndicatorSize.tab,
+                padding: const EdgeInsets.all(4),
+                tabs: const [
+                  Tab(text: 'History'),
+                  Tab(text: 'Certificates'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -122,171 +156,131 @@ class _HistoryTabState extends State<_HistoryTab> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: _historyFuture,
-      builder: (context, snapshot) {
-        // 1. Loading State
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-        }
+    return Container(
+      color: const Color(0xFFF9FBFF),
+      child: FutureBuilder<List<dynamic>>(
+        future: _historyFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
 
-        // 2. Error State
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-        // 3. Empty State
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text("No history found."));
-        }
-
-        final historyList = snapshot.data!;
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: historyList.length,
-          itemBuilder: (context, index) {
-            final item = historyList[index];
-
-            // --- DATA MAPPING ---
-            // Extracting ONLY the requested fields
-            final String name = item['foodDescription'] ?? 'Unknown Item';
-            final String quantity = "${item['quantityKg']} kg"; // Adding 'kg' label
-            final String status = item['status'] ?? 'Unknown';
-            final String date = _formatDate(item['mustPickupBy']); // Using pickup date for display
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    AppColors.primary.withOpacity(0.02),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history_rounded, size: 64, color: AppColors.primary.withOpacity(0.2)),
+                  const SizedBox(height: 16),
+                  const Text('No history available', style: TextStyle(color: AppColors.textSecondary)),
                 ],
               ),
-              child: Material(
-                color: Colors.transparent,
+            );
+          }
+
+          final historyList = snapshot.data!;
+
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+            physics: const BouncingScrollPhysics(),
+            itemCount: historyList.length,
+            itemBuilder: (context, index) {
+              final item = historyList[index];
+
+              final String name = item['foodDescription'] ?? 'Unknown Item';
+              final String quantity = "${item['quantityKg']} kg";
+              final String status = item['status'] ?? 'Unknown';
+              final String date = _formatDate(item['mustPickupBy']);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))
+                  ],
+                  border: Border.all(color: Colors.black.withOpacity(0.02), width: 1.5),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title and Status Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: Text(
-                              name, // foodDescription
+                              name,
                               style: const TextStyle(
                                 fontSize: 17,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w800,
                                 color: AppColors.textPrimary,
+                                letterSpacing: -0.5,
                               ),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  _getStatusColor(status).withOpacity(0.15),
-                                  _getStatusColor(status).withOpacity(0.08),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: _getStatusColor(status),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Text(
-                              status, // status
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: _getStatusColor(status),
-                              ),
-                            ),
-                          ),
+                          _buildStatusChip(status),
                         ],
                       ),
-                      const SizedBox(height: 14),
-
-                      // Date and Quantity Row
+                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.calendar_today_rounded,
-                                    size: 14, color: AppColors.primary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  date, // Formatted Date
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.scale_rounded,
-                                    size: 14, color: AppColors.secondary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  quantity, // quantityKg
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          _buildInfoRow(Icons.calendar_today_rounded, date, AppColors.primary),
+                          const SizedBox(width: 16),
+                          _buildInfoRow(Icons.scale_rounded, quantity, AppColors.secondary),
                         ],
                       ),
                     ],
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    final color = _getStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color.withOpacity(0.7)),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -299,94 +293,158 @@ class _CertificatesTab extends StatelessWidget {
       'donations': '8',
       'peopleFed': '87',
       'co2Saved': '45 kg',
+      'level': 'Gold',
     },
-    // ... other certs
+    {
+      'month': 'November 2025',
+      'donations': '5',
+      'peopleFed': '42',
+      'co2Saved': '22 kg',
+      'level': 'Silver',
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: certificates.length,
-      itemBuilder: (context, index) {
-        final cert = certificates[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium_rounded,
-                        color: AppColors.primary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Impact Certificate',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            cert['month']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _CertStat(
-                        icon: Icons.volunteer_activism_rounded,
-                        label: 'Donations',
-                        value: cert['donations']!,
-                      ),
-                    ),
-                    Expanded(
-                      child: _CertStat(
-                        icon: Icons.people_rounded,
-                        label: 'People Fed',
-                        value: cert['peopleFed']!,
-                      ),
-                    ),
-                    Expanded(
-                      child: _CertStat(
-                        icon: Icons.eco_rounded,
-                        label: 'CO₂ Saved',
-                        value: cert['co2Saved']!,
-                      ),
-                    ),
-                  ],
-                ),
+    return Container(
+      color: const Color(0xFFF9FBFF),
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        itemCount: certificates.length,
+        itemBuilder: (context, index) {
+          final cert = certificates[index];
+          final isGold = cert['level'] == 'Gold';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isGold 
+                  ? [const Color(0xFFFFF7E6), Colors.white] 
+                  : [const Color(0xFFF5F5F5), Colors.white],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: (isGold ? Colors.orange : Colors.grey).withOpacity(0.12),
+                  blurRadius: 20,
+                  offset: const Offset(0, 12),
+                )
               ],
+              border: Border.all(
+                color: (isGold ? Colors.orange : Colors.grey).withOpacity(0.1),
+                width: 2,
+              ),
             ),
-          ),
-        );
-      },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: -20,
+                    right: -20,
+                    child: Icon(
+                      Icons.workspace_premium_rounded,
+                      size: 120,
+                      color: (isGold ? Colors.orange : Colors.grey).withOpacity(0.05),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: (isGold ? Colors.orange : Colors.grey).withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.workspace_premium_rounded,
+                                color: isGold ? Colors.orange.shade700 : Colors.grey.shade700,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Impact Award',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: isGold ? Colors.orange.shade900 : AppColors.textPrimary,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    cert['month']!,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isGold ? Colors.orange.shade800.withOpacity(0.7) : AppColors.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _CertStat(
+                              icon: Icons.volunteer_activism_rounded,
+                              label: 'Donations',
+                              value: cert['donations']!,
+                              color: isGold ? Colors.orange.shade700 : AppColors.primary,
+                            ),
+                            _CertStat(
+                              icon: Icons.people_rounded,
+                              label: 'People Fed',
+                              value: cert['peopleFed']!,
+                              color: isGold ? Colors.orange.shade700 : AppColors.secondary,
+                            ),
+                            _CertStat(
+                              icon: Icons.eco_rounded,
+                              label: 'CO₂ Saved',
+                              value: cert['co2Saved']!,
+                              color: isGold ? Colors.orange.shade700 : Colors.green,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            label: const Text('Share Impact', style: TextStyle(fontWeight: FontWeight.w800)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: isGold ? Colors.orange.shade800 : AppColors.primary,
+                              backgroundColor: (isGold ? Colors.orange : AppColors.primary).withOpacity(0.1),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -395,33 +453,37 @@ class _CertStat extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
   const _CertStat({
     required this.icon,
     required this.label,
     required this.value,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.primary, size: 24),
+        Icon(icon, color: color.withOpacity(0.6), size: 22),
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
             color: AppColors.textPrimary,
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           label,
           style: const TextStyle(
             fontSize: 11,
             color: AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
         ),

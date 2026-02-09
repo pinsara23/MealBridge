@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http; 
+import 'package:http/http.dart' as http;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/api_service.dart';
@@ -304,28 +305,61 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                height: 150,
+                height: 200,
                 decoration: const BoxDecoration(
-                  color: Colors.grey, 
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: Stack(
                   children: [
-                    const Center(child: Icon(Icons.map_rounded, size: 60, color: Colors.white54)),
-                    Positioned(bottom: 10, right: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.black54, child: Text("Lat: ${details['latitude']}, Lng: ${details['longitude']}", style: const TextStyle(color: Colors.white, fontSize: 10)))),
+                    // Real Google Map showing restaurant location
+                    if (details['latitude'] != null && details['longitude'] != null)
+                      GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(
+                            (details['latitude'] as num).toDouble(),
+                            (details['longitude'] as num).toDouble(),
+                          ),
+                          zoom: 15,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('restaurant'),
+                            position: LatLng(
+                              (details['latitude'] as num).toDouble(),
+                              (details['longitude'] as num).toDouble(),
+                            ),
+                            infoWindow: InfoWindow(title: details['businessName'] ?? 'Restaurant'),
+                          ),
+                        },
+                        zoomControlsEnabled: false,
+                        scrollGesturesEnabled: false,
+                        rotateGesturesEnabled: false,
+                        tiltGesturesEnabled: false,
+                        myLocationButtonEnabled: false,
+                        mapToolbarEnabled: false,
+                      )
+                    else
+                      Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(child: Icon(Icons.map_rounded, size: 60, color: Colors.white54)),
+                      ),
+
+                    // Close button
                     Positioned(top: 10, right: 10, child: CircleAvatar(backgroundColor: Colors.white, radius: 16, child: IconButton(icon: const Icon(Icons.close, size: 16, color: Colors.black), onPressed: () => Navigator.pop(ctx)))),
-                    
+
+                    // Edit button
                     Positioned(
-                      top: 10, 
-                      left: 10, 
+                      top: 10,
+                      left: 10,
                       child: CircleAvatar(
-                        backgroundColor: Colors.white, 
-                        radius: 16, 
+                        backgroundColor: Colors.white,
+                        radius: 16,
                         child: IconButton(
-                          icon: const Icon(Icons.edit, size: 16, color: AppColors.primary), 
+                          icon: const Icon(Icons.edit, size: 16, color: AppColors.primary),
                           onPressed: () {
-                            Navigator.pop(ctx); 
-                            _showEditProfileDialog(details); 
+                            Navigator.pop(ctx);
+                            _showEditProfileDialog(details);
                           },
                         ),
                       ),
@@ -363,22 +397,27 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
       appBar: AppBar(
         title: const Text(
           'Donor Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+            color: AppColors.textPrimary,
+          ),
         ),
         elevation: 0,
-        backgroundColor: Colors.white.withOpacity(0.9),
-        flexibleSpace: ClipRect(
+        backgroundColor: Colors.transparent,
+        centerTitle: false,
+        flexibleSpace: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primary.withOpacity(0.1),
-                    AppColors.secondary.withOpacity(0.05),
-                  ],
+                color: Colors.white.withOpacity(0.7),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.black.withOpacity(0.05),
+                    width: 1,
+                  ),
                 ),
               ),
             ),
@@ -418,8 +457,10 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
       ),
       
       floatingActionButton: Container(
+        height: 64,
+        width: 160,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(32),
           gradient: const LinearGradient(
             colors: [AppColors.primary, AppColors.primaryDark],
             begin: Alignment.topLeft,
@@ -427,22 +468,29 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.5),
-              blurRadius: 20,
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 15,
               offset: const Offset(0, 8),
-              spreadRadius: 2,
             ),
           ],
         ),
         child: FloatingActionButton.extended(
           onPressed: _handleScan,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          focusElevation: 0,
+          hoverElevation: 0,
+          highlightElevation: 0,
           label: const Text(
             "Scan QR",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: Colors.white,
+              letterSpacing: 0.2,
+            ),
           ),
-          icon: const Icon(Icons.qr_code_scanner, size: 24),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+          icon: const Icon(Icons.qr_code_scanner_rounded, size: 24, color: Colors.white),
         ),
       ),
 
@@ -461,52 +509,64 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
 
             return Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.primary.withOpacity(0.05), Colors.white, AppColors.secondary.withOpacity(0.03)],
-                ),
+                color: const Color(0xFFF9FBFF),
               ),
               child: SafeArea(
                 child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildWelcomeCard(),
                       
-                      const SizedBox(height: 32),
-                      const Text('Your Impact 🌟', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 40),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Your Impact', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
+                          Icon(Icons.auto_graph_rounded, color: AppColors.primary.withOpacity(0.5)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(children: [Expanded(child: _StatCard(title: 'Total Donations', value: stats.totalDonations.toString(), icon: Icons.volunteer_activism_rounded, color: AppColors.primary)), const SizedBox(width: 16), Expanded(child: _StatCard(title: 'People Fed', value: stats.peopleFed.toString(), icon: Icons.people_rounded, color: AppColors.secondary))]),
                       const SizedBox(height: 16),
-                      Row(children: [Expanded(child: _StatCard(title: 'Total Donations', value: stats.totalDonations.toString(), icon: Icons.volunteer_activism_rounded, color: AppColors.primary)), const SizedBox(width: 12), Expanded(child: _StatCard(title: 'People Fed', value: stats.peopleFed.toString(), icon: Icons.people_rounded, color: AppColors.secondary))]),
-                      const SizedBox(height: 12),
-                      Row(children: [Expanded(child: _StatCard(title: 'Active', value: stats.activeDonations.toString(), icon: Icons.schedule_rounded, color: AppColors.info)), const SizedBox(width: 12), Expanded(child: FutureBuilder<int>(future: _monthlyStatsFuture, builder: (context, monthSnapshot) { return _StatCard(title: 'This Month', value: monthSnapshot.hasData ? monthSnapshot.data.toString() : "...", icon: Icons.calendar_today_rounded, color: AppColors.volunteer); }))]),
+                      Row(children: [Expanded(child: _StatCard(title: 'Active', value: stats.activeDonations.toString(), icon: Icons.timer_rounded, color: AppColors.info)), const SizedBox(width: 16), Expanded(child: FutureBuilder<int>(future: _monthlyStatsFuture, builder: (context, monthSnapshot) { return _StatCard(title: 'This Month', value: monthSnapshot.hasData ? monthSnapshot.data.toString() : "...", icon: Icons.calendar_month_rounded, color: AppColors.volunteer); }))]),
                       
-                      const SizedBox(height: 32),
-                      const Text('Monthly Trends 📊', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 40),
+                      const Text('Monthly Trends', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
+                      const SizedBox(height: 20),
                       _buildGraphSection(),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       _buildPredictionCard(),
 
-                      const SizedBox(height: 32),
-                      const Text('Quick Actions', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 40),
+                      const Text('Quick Actions', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
+                      const SizedBox(height: 20),
+                      _ActionCard(title: 'My Donations', subtitle: 'View and manage your active postings', icon: Icons.inventory_2_rounded, color: AppColors.primary, onTap: () => Navigator.pushNamed(context, AppRoutes.myDonations)),
                       const SizedBox(height: 16),
-                      _ActionCard(title: 'My Donations', subtitle: 'View all your active and past donations', icon: Icons.list_alt_rounded, color: AppColors.primary, onTap: () => Navigator.pushNamed(context, AppRoutes.myDonations)),
-                      const SizedBox(height: 12),
-                      _ActionCard(title: 'Donation History', subtitle: 'Track your impact over time', icon: Icons.history_rounded, color: AppColors.secondary, onTap: () => Navigator.pushNamed(context, AppRoutes.donorHistory)),
+                      _ActionCard(title: 'Donation History', subtitle: 'Track your past contributions', icon: Icons.history_rounded, color: AppColors.secondary, onTap: () => Navigator.pushNamed(context, AppRoutes.donorHistory)),
 
-                      const SizedBox(height: 32),
-                      const Text('Pending Pickups', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 40),
+                      Row(
+                        children: [
+                          const Text('Pending Pickups', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary, letterSpacing: -0.5)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('Live', style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 8),
-                      const Text('Volunteers on the way. Use the Scan button when they arrive.', style: TextStyle(color: Colors.grey)),
-                      const SizedBox(height: 16),
+                      const Text('Volunteers are on their way to pick up food.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                      const SizedBox(height: 20),
 
                       _buildPendingList(),
                       
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -529,53 +589,76 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         final double predictedValue = snapshot.data!;
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2575FC).withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+                color: const Color(0xFF6366F1).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 30),
+                child: const Icon(Icons.psychology_rounded, color: Colors.white, size: 32),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "AI Insight 🤖",
-                      style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold),
+                    Text(
+                      "AI INSIGHT",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       "Predicted waste for tomorrow",
-                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "${predictedValue.toStringAsFixed(2)} kg",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height: 8),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: predictedValue.toStringAsFixed(2),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: " kg",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -608,45 +691,61 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         if (maxWeight == 0) maxWeight = 100;
 
         return Container(
-          padding: const EdgeInsets.all(20),
-          height: 250,
+          padding: const EdgeInsets.all(24),
+          height: 240,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: sortedData.map((item) {
-              final double height = (item['totalWeight'] / maxWeight) * 160;
+              final double height = (item['totalWeight'] / maxWeight) * 140;
               final String monthShort = item['month'].substring(0, 3);
               
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Tooltip(
-                    message: "${item['totalWeight']} kg",
-                    child: Container(
-                      width: 20,
-                      height: height,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(6),
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary.withOpacity(0.6), AppColors.primary],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                        )
+              return Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Tooltip(
+                      message: "${item['totalWeight']} kg",
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 14,
+                        height: height.clamp(10, 140),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(7),
+                          gradient: LinearGradient(
+                            colors: [AppColors.primary.withOpacity(0.4), AppColors.primary],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                          boxShadow: [
+                            if (height > 20)
+                              BoxShadow(
+                                color: AppColors.primary.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    monthShort,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      monthShort,
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           ),
@@ -671,14 +770,35 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
           itemCount: activeList.length,
           itemBuilder: (context, index) {
             final item = activeList[index];
-            return Card(
+            return Container(
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withOpacity(0.2), width: 1),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                ],
+              ),
               child: ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.orangeAccent, child: Icon(Icons.delivery_dining, color: Colors.white)),
-                title: Text(item['foodDescription'] ?? "Food Package", style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text("Volunteer Assigned"),
-                trailing: const Icon(Icons.hourglass_bottom, color: Colors.orange),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.delivery_dining_rounded, color: Colors.orange, size: 24),
+                ),
+                title: Text(
+                  item['foodDescription'] ?? "Food Package",
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary),
+                ),
+                subtitle: const Text("Volunteer Assigned", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                trailing: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                ),
               ),
             );
           },
@@ -688,11 +808,263 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   }
 
   Widget _buildWelcomeCard() {
-      return TweenAnimationBuilder<double>(tween: Tween(begin: 0.0, end: 1.0), duration: const Duration(milliseconds: 600), builder: (context, value, child) { return Transform.scale(scale: 0.9 + (0.1 * value), child: Opacity(opacity: value, child: Container(width: double.infinity, padding: const EdgeInsets.all(28), decoration: BoxDecoration(gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.primary, AppColors.secondary]), borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10), spreadRadius: 2)]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Expanded(child: Text('Welcome Back,\n$_restaurantName!', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))), const Text('👋', style: TextStyle(fontSize: 28))]), const SizedBox(height: 12), const Text('Ready to make a difference today?', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w400)), const SizedBox(height: 24), ElevatedButton(onPressed: () async { await Navigator.pushNamed(context, AppRoutes.postFood); _loadData(); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0), child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.add_rounded, size: 24), SizedBox(width: 12), Text('Post Food', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]))])))); });
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - value)),
+          child: Opacity(
+            opacity: value,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.primary, AppColors.primaryDark],
+                ),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 25,
+                    offset: const Offset(0, 15),
+                    spreadRadius: -5,
+                  )
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello,',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$_restaurantName',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Text('👋', style: TextStyle(fontSize: 24)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Ready to share your extra food and support the community?',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.4,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await Navigator.pushNamed(context, AppRoutes.postFood);
+                      _loadData();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_circle_outline_rounded, size: 22),
+                        SizedBox(width: 10),
+                        Text('Post New Food', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
 class _ProfileRow extends StatelessWidget { final IconData icon; final String text; const _ProfileRow({required this.icon, required this.text}); @override Widget build(BuildContext context) { return Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [Icon(icon, size: 20, color: AppColors.primary), const SizedBox(width: 12), Expanded(child: Text(text, style: const TextStyle(fontSize: 16)))])); }}
-class _StatCard extends StatelessWidget { final String title; final String value; final IconData icon; final Color color; const _StatCard({required this.title, required this.value, required this.icon, required this.color}); @override Widget build(BuildContext context) { return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [color.withOpacity(0.15), color.withOpacity(0.05)]), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.3), width: 1.5), boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 6))]), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)]), child: Icon(icon, color: Colors.white, size: 28)), const SizedBox(height: 16), Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color, shadows: [Shadow(color: color.withOpacity(0.3), blurRadius: 8)])), const SizedBox(height: 6), Text(title, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600))])); }}
-class _ActionCard extends StatefulWidget { final String title; final String subtitle; final IconData icon; final Color color; final VoidCallback onTap; const _ActionCard({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap}); @override State<_ActionCard> createState() => _ActionCardState(); }
-class _ActionCardState extends State<_ActionCard> { bool _isPressed = false; @override Widget build(BuildContext context) { return GestureDetector(onTapDown: (_) => setState(() => _isPressed = true), onTapUp: (_) { setState(() => _isPressed = false); widget.onTap(); }, onTapCancel: () => setState(() => _isPressed = false), child: AnimatedContainer(duration: const Duration(milliseconds: 150), transform: Matrix4.identity()..scale(_isPressed ? 0.98 : 1.0), padding: const EdgeInsets.all(20), decoration: BoxDecoration(gradient: _isPressed ? LinearGradient(colors: [widget.color.withOpacity(0.1), widget.color.withOpacity(0.05)]) : null, color: _isPressed ? null : Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _isPressed ? widget.color : AppColors.border, width: _isPressed ? 2 : 1.5), boxShadow: [BoxShadow(color: _isPressed ? widget.color.withOpacity(0.2) : Colors.black.withOpacity(0.08), blurRadius: _isPressed ? 16 : 10, offset: Offset(0, _isPressed ? 6 : 4))]), child: Row(children: [Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(gradient: LinearGradient(colors: [widget.color, widget.color.withOpacity(0.8)]), borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: widget.color.withOpacity(0.3), blurRadius: 8, spreadRadius: 1)]), child: Icon(widget.icon, color: Colors.white, size: 26)), const SizedBox(width: 18), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary)), const SizedBox(height: 6), Text(widget.subtitle, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary))])), Icon(Icons.arrow_forward_ios_rounded, color: widget.color, size: 20)]))); }}
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({required this.title, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
+        border: Border.all(color: color.withOpacity(0.08), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: AppColors.textPrimary,
+              letterSpacing: -1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionCard({required this.title, required this.subtitle, required this.icon, required this.color, required this.onTap});
+
+  @override
+  State<_ActionCard> createState() => _ActionCardState();
+}
+
+class _ActionCardState extends State<_ActionCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        transform: Matrix4.identity()..scale(_isPressed ? 0.98 : 1.0),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(_isPressed ? 0.04 : 0.06),
+              blurRadius: _isPressed ? 10 : 20,
+              offset: Offset(0, _isPressed ? 4 : 8),
+            )
+          ],
+          border: Border.all(
+            color: _isPressed ? widget.color.withOpacity(0.5) : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: widget.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(widget.icon, color: widget.color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.withOpacity(0.5), size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}

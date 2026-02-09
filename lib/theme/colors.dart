@@ -47,15 +47,37 @@ class AppColors {
   static const Color volunteer = Color(0xFFFF9800);
   static const Color admin = Color(0xFF607D8B);
   
+  // Shimmer / Subtle Surface
+  static const Color shimmer = Color(0xFFF1F5F9);
+  static const Color cardShadow = Color(0x0A000000);
+
   // Gradient Colors
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primary, primaryLight],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static const LinearGradient urgentGradient = LinearGradient(
     colors: [urgent, Color(0xFFFF8A80)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient donorGradient = LinearGradient(
+    colors: [Color(0xFF2196F3), Color(0xFF42A5F5)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient adminGradient = LinearGradient(
+    colors: [Color(0xFF455A64), Color(0xFF78909C)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient volunteerGradient = LinearGradient(
+    colors: [Color(0xFFFF9800), Color(0xFFFFB74D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
