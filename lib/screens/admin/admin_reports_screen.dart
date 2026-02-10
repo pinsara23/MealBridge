@@ -209,7 +209,7 @@ class AdminReportsScreen extends StatelessWidget {
                   ),
                   const Divider(height: 24),
                   _MetricRow(
-                    label: 'Completed Deliveries',
+                    label: 'Completed Contributions',
                     value: '1,187',
                     trend: '+22%',
                     isPositive: true,

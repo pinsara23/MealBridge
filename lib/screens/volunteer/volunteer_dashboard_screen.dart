@@ -845,7 +845,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.fastfood_rounded, "Orders", badge: _availableOrders.length),
-                _buildNavItem(1, Icons.delivery_dining_rounded, "Deliveries", badge: _myTasks.where((t) => t['status'] != 'COMPLETED').length),
+                _buildNavItem(1, Icons.delivery_dining_rounded, "My Contributions", badge: _myTasks.where((t) => t['status'] != 'COMPLETED').length),
                 _buildNavItem(2, Icons.leaderboard_rounded, "Impact"),
               ],
             ),
@@ -1009,7 +1009,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
           child: Row(
             children: [
               const Expanded(
-                child: Text("My Deliveries", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                child: Text("My Contributions", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
               ),
               GestureDetector(
                 onTap: _loadAll,
@@ -1026,10 +1026,10 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
           ),
         ),
         Expanded(
-          child: _isLoadingTasks
+            child: _isLoadingTasks
               ? const Center(child: CircularProgressIndicator())
               : _myTasks.isEmpty
-                  ? _buildEmptyState("No deliveries yet", "Accept an order to get started!", Icons.local_shipping_rounded)
+                ? _buildEmptyState("No contributions yet", "Accept an order to get started!", Icons.local_shipping_rounded)
                   : RefreshIndicator(
                       onRefresh: _loadAll,
                       color: AppColors.primary,
