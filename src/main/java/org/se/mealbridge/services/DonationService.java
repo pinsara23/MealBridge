@@ -40,6 +40,9 @@ public class DonationService {
     @Autowired
     private FileStorageutil fileStorageutil;
 
+    @Autowired
+    private WebSocketService webSocketService;
+
     private DonationsDto convertToDto(DonationEntity donationEntity) {
         DonationsDto donationsDto = modelMapper.map(donationEntity, DonationsDto.class);
         donationsDto.setRestaurantId(donationEntity.getDonor().getId());
@@ -69,6 +72,9 @@ public class DonationService {
 
         DonationEntity savedDonation = donationRepository.save(entity);
 
+        webSocketService.notifyAllVolunteers("NEW_FOOD_AVAILABLE");
+        webSocketService.notifyRestaurant(savedDonation.getDonor().getId(), "DONATION_POSTED");
+
         return convertToDto(savedDonation);
     }
 
@@ -97,6 +103,15 @@ public class DonationService {
         return donations.stream().map(this::convertToDto).toList();
     }
 
+    public List<DonationsDto> getAllFinishedDonationsByVolunteerId(Long volunteerId){
+
+        VolunteerEntity volunteer = volunteerRepository.findById(volunteerId)
+                .orElseThrow(() -> new RuntimeException("Volunteer not found"));
+        List<DonationEntity> donations = donationRepository.findByAssignedVolunteerAndStatusNotIn(volunteer, List.of(DonationStatus.CLAIMED, DonationStatus.PICKED_UP, DonationStatus.AVAILABLE));
+
+        return donations.stream().map(this::convertToDto).toList();
+    }
+
     //logic for claim donation
     public String claimDonation(Long donationId, Long volunteerId){
 
@@ -121,6 +136,10 @@ public class DonationService {
         String token = donation.getPickupToken();
 
         donationRepository.save(donation);
+
+        webSocketService.notifyRestaurant(donation.getDonor().getId(), "DONATION_CLAIMED");
+        webSocketService.notifyDonationUpdate(donationId, donation.getFoodDescription()+" CLAIMED");
+
         return token;
 
     }
@@ -143,6 +162,11 @@ public class DonationService {
 
             donation.setStatus(DonationStatus.PICKED_UP);
             donationRepository.save(donation);
+
+            webSocketService.notifyRestaurant(donation.getDonor().getId(), "DONATION_PICKED");
+            webSocketService.notifyDonationUpdate(donation.getId(), "DONATION_PICKED");
+            webSocketService.notifVolunteer(donation.getAssignedVolunteer().getId(), "DONATION_PICKED");
+
             return true;
 
         }else  {
@@ -175,6 +199,11 @@ public class DonationService {
         }
 
         donationRepository.save(donation);
+
+        webSocketService.notifyRestaurant(donation.getDonor().getId(), "DONATION_DISTRIBUTED");
+        webSocketService.notifyDonationUpdate(donation.getId(), "DONATION_DISTRIBUTED");
+        webSocketService.notifVolunteer(donation.getAssignedVolunteer().getId(), "DONATION_DISTRIBUTED");
+
         return true;
     }
 
@@ -198,6 +227,11 @@ public class DonationService {
         }
 
         donationRepository.save(donation);
+
+        webSocketService.notifyRestaurant(donation.getDonor().getId(), "DONATION_DISTRIBUTED");
+        webSocketService.notifyDonationUpdate(donation.getId(), "DONATION_DISTRIBUTED");
+        webSocketService.notifVolunteer(donation.getAssignedVolunteer().getId(), "DONATION_DISTRIBUTED");
+
         return true;
     }
 

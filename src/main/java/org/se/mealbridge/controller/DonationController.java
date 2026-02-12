@@ -48,6 +48,12 @@ public class DonationController {
         return donationService.getAllDonationsByVolunteerId(id);
     }
 
+    // /api/donations/feed/finish/volunteer/{id}
+    @GetMapping("/feed/finish/volunteer/{id}")
+    public List<DonationsDto> getFinishedFeedByVolunteerId(@PathVariable Long id){
+        return donationService.getAllFinishedDonationsByVolunteerId(id);
+    }
+
     // /api/donations/{donation id}/claim?vId=id  vId = volunteerid
     @PutMapping("/{donationId}/claim")
     public String claimDonation(

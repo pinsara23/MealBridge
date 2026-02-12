@@ -1,8 +1,11 @@
 package org.se.mealbridge.scheduler;
 
+import jakarta.transaction.Transactional;
 import org.se.mealbridge.entity.DonationEntity;
 import org.se.mealbridge.entity.DonationStatus;
+import org.se.mealbridge.entity.VolunteerEntity;
 import org.se.mealbridge.repository.DonationRepository;
+import org.se.mealbridge.repository.VolunteerRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +17,14 @@ import java.util.List;
 public class DonationCleanupScheduler {
 
     private final DonationRepository donationRepository;
+    private final VolunteerRepository volunteerRepository;
 
-    public DonationCleanupScheduler(DonationRepository donationRepository) {
+    public DonationCleanupScheduler(DonationRepository donationRepository, VolunteerRepository volunteerRepository) {
         this.donationRepository = donationRepository;
+        this.volunteerRepository = volunteerRepository;
     }
 
+    @Transactional
     @Scheduled(fixedRate = 60000) //run this every 1min 60000 ms
     public void markExpiredDonations(){
 
@@ -46,6 +52,22 @@ public class DonationCleanupScheduler {
             }
 
             donationRepository.saveAll(expiredDonationsButClaimed);
+        }
+
+        List<DonationEntity> expiredDonationsButPickedUp = donationRepository.findByStatusAndMustPickupByBefore(DonationStatus.PICKED_UP, graceTime);
+        if (!expiredDonationsButPickedUp.isEmpty()){
+            for (DonationEntity donation : expiredDonationsButPickedUp){
+                donation.setStatus(DonationStatus.EXPIRED);
+
+                VolunteerEntity volunteer = donation.getAssignedVolunteer();
+                if (volunteer != null){
+                    volunteer.setCreditScore(volunteer.getCreditScore() -5);
+
+                }
+
+            }
+
+            donationRepository.saveAll(expiredDonationsButPickedUp);
         }
     }
 
