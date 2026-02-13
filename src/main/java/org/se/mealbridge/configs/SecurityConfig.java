@@ -20,7 +20,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
-@EnableMethodSecurity   // for @PreAuthorize annotations in controllers to assign roles to specific endpoints
+@EnableMethodSecurity   // for @PreAuthorize annotations in controllers(specific endpoints) to assign roles to specific endpoints
 public class SecurityConfig {
 
     @Bean

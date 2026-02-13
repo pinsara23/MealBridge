@@ -21,15 +21,15 @@ public class PasswordResetToken {
 
     private LocalDateTime expiryDate;
 
-    @OneToOne(targetEntity = RestaurantEntity.class, fetch = FetchType.EAGER)
-    @JoinColumn(nullable = false, name = "restaurant_id")
-    private RestaurantEntity restaurant;
+    private String userType;
 
-    public PasswordResetToken(String token, RestaurantEntity restaurantEntity) {
+    private String email;
 
+    public PasswordResetToken(String token, String userType, String email) {
         this.token = token;
-        this.restaurant = restaurantEntity;
-        this.expiryDate = LocalDateTime.now().plusMinutes(15); // Token valid for 15 minutes
+        this.userType = userType;
+        this.email = email;
+        this.expiryDate = LocalDateTime.now().plusMinutes(15);
     }
 
     public boolean isExpired() {

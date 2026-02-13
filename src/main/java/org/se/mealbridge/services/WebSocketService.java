@@ -36,4 +36,9 @@ public class WebSocketService {
         String topic = "/topic/restaurant/" + restaurantId;
         simpMessagingTemplate.convertAndSend(topic, message);
     }
+
+    public void notifyAdmin(String message) {
+        String topic = "/topic/admins";
+        simpMessagingTemplate.convertAndSend(topic, message);
+    }
 }

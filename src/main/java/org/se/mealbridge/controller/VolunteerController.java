@@ -1,5 +1,6 @@
 package org.se.mealbridge.controller;
 
+import jakarta.validation.Valid;
 import org.se.mealbridge.dto.VolunteerDto;
 import org.se.mealbridge.services.VolunteerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ public class VolunteerController {
 
     // /api/volunteer/register
     @PostMapping("/register")
-    public VolunteerDto registerVolunteer(@RequestBody VolunteerDto volunteerDto) {
+    public VolunteerDto registerVolunteer(@Valid @RequestBody VolunteerDto volunteerDto) {
         return volunteerService.saveVolunteer(volunteerDto);
     }
 

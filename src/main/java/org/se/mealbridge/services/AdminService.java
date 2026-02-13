@@ -35,6 +35,8 @@ public class AdminService {
     private DonationRepository donationRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private WebSocketService webSocketService;
 
     public AdminDto registerAdminMem(AdminDto adminDto) {
 
@@ -67,6 +69,9 @@ public class AdminService {
         if(volunteer != null && !(volunteer.isVerified())){
             volunteer.setVerified(true);
             volunteerRepository.save(volunteer);
+
+            webSocketService.notifVolunteer(volunteerId, "Your volunteer group has been approved by the admin. You can now access all features of the platform.");
+
         }else {
             return false;
         }

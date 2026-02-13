@@ -1,5 +1,6 @@
 package org.se.mealbridge.controller;
 
+import jakarta.validation.Valid;
 import org.se.mealbridge.dto.RestaurantDTO;
 import org.se.mealbridge.entity.RestaurantEntity;
 import org.se.mealbridge.services.RestaurantService;
@@ -16,7 +17,7 @@ public class RestaurantController {
     private RestaurantService restaurantService;
 
     @PostMapping("/register")
-    public RestaurantDTO registerRestaurent(@RequestBody RestaurantDTO restaurantDTO) {
+    public RestaurantDTO registerRestaurent(@Valid @RequestBody RestaurantDTO restaurantDTO) {
         return restaurantService.registerRestaurent(restaurantDTO);
     }
 

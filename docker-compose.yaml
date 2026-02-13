@@ -45,7 +45,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       # Check every hour (3600s) instead of 30s to avoid rate limits
-      - WATCHTOWER_POLL_INTERVAL=3600
+      - WATCHTOWER_POLL_INTERVAL=60
       # DELETE old images to save your 20GB SSD space
       - WATCHTOWER_CLEANUP=true
 

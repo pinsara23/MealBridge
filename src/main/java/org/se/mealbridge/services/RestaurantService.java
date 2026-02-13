@@ -26,6 +26,8 @@ public class RestaurantService {
     private final GeometryFactory geometryFactory = new GeometryFactory();
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private WebSocketService webSocketService;
 
     //1.Register a restaurant
     public RestaurantDTO registerRestaurent(RestaurantDTO restaurantDTO) {
@@ -46,6 +48,7 @@ public class RestaurantService {
         dto.setLatitude(entity.getLocation().getY());
         dto.setPassword(null);
 
+        webSocketService.notifyAdmin("New restaurant registered: " + dto.getBusinessName());
         return dto;
     }
 

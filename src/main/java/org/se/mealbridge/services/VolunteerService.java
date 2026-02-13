@@ -19,27 +19,20 @@ public class VolunteerService {
     private ModelMapper modelMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private WebSocketService webSocketService;
 
     //save volunteer group
     public VolunteerDto saveVolunteer(VolunteerDto volunteerDto) {
 
         VolunteerEntity enity = modelMapper.map(volunteerDto, VolunteerEntity.class);
-
-        if (enity.getPassword() == null || enity.getPassword().isEmpty()) {
-            throw new IllegalArgumentException("Password cannot be null or empty");
-        }
-
-        if (enity.getEmail() == null || enity.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be null or empty");
-        }
-
-        if (enity.getPhoneNumber() == null || enity.getPhoneNumber().isEmpty()) {
-            throw new IllegalArgumentException("Phone number cannot be null or empty");
-        }
-
+        
         enity.setPassword(passwordEncoder.encode(volunteerDto.getPassword()));
 
         VolunteerEntity savedVolunteerEntity = volunteerRepository.save(enity);
+
+        webSocketService.notifyAdmin("New volunteer group registered: " + volunteerDto.getOrganizationName());
+
         return modelMapper.map(savedVolunteerEntity, VolunteerDto.class);
     }
 
