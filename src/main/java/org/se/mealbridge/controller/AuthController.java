@@ -12,6 +12,7 @@ import org.se.mealbridge.repository.RestaurantRepository;
 import org.se.mealbridge.repository.VolunteerRepository;
 import org.se.mealbridge.security.JwtUtil;
 import org.se.mealbridge.services.PasswordResetService;
+import org.se.mealbridge.services.TokenBlacklistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -41,6 +42,8 @@ public class AuthController {
     private JwtUtil jwtUtil;
     @Autowired
     private PasswordResetService passwordResetService;
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
 
     // /api/auth/login
     @PostMapping("/login")
@@ -107,5 +110,19 @@ public class AuthController {
 
         passwordResetService.resetPassword(resetRequest.token(), resetRequest.newPassword());
         return ResponseEntity.ok("Password reset successful");
+    }
+
+    // /api/auth/logout
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token){
+
+        if (token != null && token.startsWith("Bearer ")){
+
+            String jwt = token.substring(7);
+            tokenBlacklistService.blacklistToken(jwt);
+            return ResponseEntity.ok("Logout successful.");
+        }
+
+        return ResponseEntity.badRequest().body("Invalid token.");
     }
 }

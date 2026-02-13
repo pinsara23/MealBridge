@@ -5,6 +5,7 @@ import org.se.mealbridge.entity.DonationEntity;
 import org.se.mealbridge.entity.DonationStatus;
 import org.se.mealbridge.entity.VolunteerEntity;
 import org.se.mealbridge.repository.DonationRepository;
+import org.se.mealbridge.repository.TokanBlacklistRepository;
 import org.se.mealbridge.repository.VolunteerRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,10 +19,12 @@ public class DonationCleanupScheduler {
 
     private final DonationRepository donationRepository;
     private final VolunteerRepository volunteerRepository;
+    private final TokanBlacklistRepository tokanBlacklistRepository;
 
-    public DonationCleanupScheduler(DonationRepository donationRepository, VolunteerRepository volunteerRepository) {
+    public DonationCleanupScheduler(DonationRepository donationRepository, VolunteerRepository volunteerRepository, TokanBlacklistRepository tokanBlacklistRepository) {
         this.donationRepository = donationRepository;
         this.volunteerRepository = volunteerRepository;
+        this.tokanBlacklistRepository = tokanBlacklistRepository;
     }
 
     @Transactional
@@ -69,6 +72,14 @@ public class DonationCleanupScheduler {
 
             donationRepository.saveAll(expiredDonationsButPickedUp);
         }
+    }
+
+    @Transactional
+    @Scheduled(fixedRate = 3600000)
+    public void deleteBlackListedTokens(){
+
+        tokanBlacklistRepository.deleteByExpiryDateBefore(LocalDateTime.now());
+
     }
 
 }
