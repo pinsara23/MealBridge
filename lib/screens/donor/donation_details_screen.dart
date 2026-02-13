@@ -1,53 +1,177 @@
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/colors.dart';
-import '../../widgets/status_chip.dart';
-import '../../widgets/food_type_chip.dart';
+import '../../services/api_service.dart';
+import '../../services/websocket_service.dart';
 import '../../widgets/custom_button.dart';
 
-class DonationDetailsScreen extends StatelessWidget {
-  const DonationDetailsScreen({Key? key}) : super(key: key);
+class DonationDetailsScreen extends StatefulWidget {
+  final int donationId;
+  final String initialStatus;
+  final String foodDescription;
+  final String quantity;
+  final String pickupTime;
+  final String volunteerName;
+  final String volunteerPhone;
+  final String restaurantName; // Added
+
+  const DonationDetailsScreen({
+    Key? key,
+    required this.donationId,
+    required this.initialStatus,
+    required this.foodDescription,
+    required this.quantity,
+    required this.pickupTime,
+    required this.restaurantName,
+    this.volunteerName = "Not Assigned",
+    this.volunteerPhone = "",
+  }) : super(key: key);
+
+  @override
+  State<DonationDetailsScreen> createState() => _DonationDetailsScreenState();
+}
+
+class _DonationDetailsScreenState extends State<DonationDetailsScreen> {
+  final WebSocketService _wsService = WebSocketService();
+  final ApiService _apiService = ApiService();
+  
+  late String _currentStatus;
+  late String _currentVolunteer;
+  late String _currentVolunteerPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.initialStatus;
+    _currentVolunteer = widget.volunteerName;
+    _currentVolunteerPhone = widget.volunteerPhone;
+    _initWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _wsService.disconnect();
+    super.dispose();
+  }
+
+  // --- WEBSOCKET LOGIC ---
+  Future<void> _initWebSocket() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null) {
+      _wsService.connect(token, (frame) {
+        print("✅ Details: WebSocket Connected");
+
+        // Listen for specific updates to THIS donation
+        _wsService.subscribeToDonation(widget.donationId, (newMessage) {
+          print("📩 Status Update: $newMessage");
+
+          if (mounted) {
+            setState(() {
+              _currentStatus = newMessage; 
+              // Note: If you want volunteer details to update live, 
+              // your backend message should be a JSON object containing {status, volunteerName, phone}.
+              // For now, we just update status.
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Status changed to: $newMessage"),
+                backgroundColor: Colors.blue,
+                behavior: SnackBarBehavior.floating,
+              )
+            );
+          }
+        });
+      });
+    }
+  }
+
+  // --- ACTIONS ---
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    if (phoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No phone number available")));
+      return;
+    }
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not launch dialer")));
+    }
+  }
+
+  Future<void> _cancelDonation() async {
+    // API Call would go here
+    try {
+      // await _apiService.cancelDonation(token, widget.donationId);
+      
+      setState(() {
+        _currentStatus = "CANCELLED";
+      });
+      Navigator.pop(context); // Go back
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Donation Cancelled")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Mock data - in real app, this would come from arguments
-    final donation = {
-      'name': 'Rice and Curry',
-      'quantity': 'Serves 10 people',
-      'status': 'In Progress',
-      'isVeg': true,
-      'location': '123 Main Street, City Center',
-      'pickupTime': '6:00 PM',
-      'notes': 'Please bring containers',
-      'donorName': 'John Doe',
-      'donorPhone': '+1 234 567 8900',
-      'claimedBy': 'Community Center ABC',
-      'volunteerName': 'Jane Smith',
-      'volunteerPhone': '+1 234 567 8901',
-    };
+    // Determine colors/icons based on status
+    Color statusColor;
+    int currentStep = 0;
+
+    switch (_currentStatus) {
+      case 'AVAILABLE':
+        statusColor = Colors.green;
+        currentStep = 0;
+        break;
+      case 'CLAIMED':
+        statusColor = Colors.orange;
+        currentStep = 1;
+        break;
+      case 'PICKED_UP':
+        statusColor = Colors.blue;
+        currentStep = 2;
+        break;
+      case 'COMPLETED':
+      case 'DELIVERED':
+        statusColor = Colors.purple;
+        currentStep = 3;
+        break;
+      case 'CANCELLED':
+        statusColor = Colors.red;
+        currentStep = 0;
+        break;
+      default:
+        statusColor = Colors.grey;
+        currentStep = 0;
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Donation Details'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            onPressed: () {},
-          ),
-        ],
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Food Image
+            // Header Image/Icon
             Container(
               width: double.infinity,
-              height: 250,
-              color: AppColors.surfaceLight,
+              height: 200,
+              color: AppColors.primary.withOpacity(0.1),
               child: const Icon(
                 Icons.fastfood_rounded,
                 size: 80,
-                color: AppColors.textHint,
+                color: AppColors.primary,
               ),
             ),
             
@@ -62,7 +186,7 @@ class DonationDetailsScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          donation['name'] as String,
+                          widget.foodDescription,
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -70,146 +194,82 @@ class DonationDetailsScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      FoodTypeChip(isVeg: donation['isVeg'] as bool),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: statusColor),
+                        ),
+                        child: Text(
+                          _currentStatus,
+                          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ],
                   ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  StatusChip(status: donation['status'] as String),
                   
                   const SizedBox(height: 24),
                   
                   // Live Status Tracker
-                  _StatusTracker(currentStatus: donation['status'] as String),
+                  if (_currentStatus != 'CANCELLED')
+                    _StatusTracker(currentStep: currentStep),
                   
                   const SizedBox(height: 24),
                   
-                  // Details Section
+                  // Information Cards
                   _InfoSection(
-                    title: 'Donation Information',
+                    title: 'Food Details',
                     items: [
-                      _InfoItem(
-                        icon: Icons.restaurant_rounded,
-                        label: 'Quantity',
-                        value: donation['quantity'] as String,
-                      ),
-                      _InfoItem(
-                        icon: Icons.access_time_rounded,
-                        label: 'Pickup Time',
-                        value: donation['pickupTime'] as String,
-                      ),
-                      _InfoItem(
-                        icon: Icons.location_on_rounded,
-                        label: 'Location',
-                        value: donation['location'] as String,
-                      ),
+                      _InfoItem(icon: Icons.scale, label: 'Quantity', value: "${widget.quantity} kg"),
+                      _InfoItem(icon: Icons.access_time_filled, label: 'Pickup Time', value: widget.pickupTime),
+                      _InfoItem(icon: Icons.store, label: 'Restaurant', value: widget.restaurantName),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
-                  // Claimed By Section
-                  _InfoSection(
-                    title: 'Claimed By',
-                    items: [
-                      _InfoItem(
-                        icon: Icons.business_rounded,
-                        label: 'Organization',
-                        value: donation['claimedBy'] as String,
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Volunteer Section
-                  _InfoSection(
-                    title: 'Assigned Volunteer',
-                    items: [
-                      _InfoItem(
-                        icon: Icons.person_rounded,
-                        label: 'Name',
-                        value: donation['volunteerName'] as String,
-                      ),
-                      _InfoItem(
-                        icon: Icons.phone_rounded,
-                        label: 'Phone',
-                        value: donation['volunteerPhone'] as String,
-                        actionIcon: Icons.call_rounded,
-                        onAction: () {},
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Notes
-                  if (donation['notes'] != null)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.notes_rounded, color: AppColors.info),
-                              SizedBox(width: 8),
-                              Text(
-                                'Notes',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            donation['notes'] as String,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
+
+                  // Volunteer Section (Only show if claimed)
+                  if (_currentStatus != 'AVAILABLE' && _currentStatus != 'CANCELLED')
+                    _InfoSection(
+                      title: 'Assigned Volunteer',
+                      items: [
+                        _InfoItem(icon: Icons.person, label: 'Name', value: _currentVolunteer),
+                        _InfoItem(
+                          icon: Icons.phone, 
+                          label: 'Phone', 
+                          value: _currentVolunteerPhone.isNotEmpty ? _currentVolunteerPhone : "Not Available",
+                          actionIcon: Icons.call,
+                          onAction: () => _makePhoneCall(_currentVolunteerPhone),
+                        ),
+                      ],
                     ),
                   
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 40),
                   
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomButton(
-                          text: 'Contact Volunteer',
-                          onPressed: () {},
-                          icon: Icons.phone_rounded,
-                        ),
+                  // Buttons
+                  if (_currentStatus == 'AVAILABLE')
+                    SizedBox(
+                      width: double.infinity,
+                      child: CustomButton(
+                        text: 'Cancel Donation',
+                        onPressed: _cancelDonation,
+                        isOutlined: true,
+                        //backgroundColor: Colors.red,
+                        textColor: Colors.red,
+                        icon: Icons.cancel_presentation,
                       ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomButton(
-                          text: 'Cancel Donation',
-                          onPressed: () {},
-                          isOutlined: true,
-                          icon: Icons.cancel_rounded,
-                        ),
+                    ),
+
+                  if (_currentStatus == 'CLAIMED')
+                    SizedBox(
+                      width: double.infinity,
+                      child: CustomButton(
+                        text: 'Contact Volunteer',
+                        onPressed: () => _makePhoneCall(_currentVolunteerPhone),
+                        icon: Icons.phone_in_talk,
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
@@ -220,89 +280,51 @@ class DonationDetailsScreen extends StatelessWidget {
   }
 }
 
-class _StatusTracker extends StatelessWidget {
-  final String currentStatus;
+// --- HELPER WIDGETS ---
 
-  const _StatusTracker({required this.currentStatus});
+class _StatusTracker extends StatelessWidget {
+  final int currentStep;
+  const _StatusTracker({required this.currentStep});
 
   @override
   Widget build(BuildContext context) {
     final steps = [
-      {'title': 'Posted', 'icon': Icons.add_circle_rounded},
-      {'title': 'Claimed', 'icon': Icons.check_circle_rounded},
-      {'title': 'Picked Up', 'icon': Icons.local_shipping_rounded},
-      {'title': 'Delivered', 'icon': Icons.done_all_rounded},
+      {'title': 'Posted', 'icon': Icons.add_circle},
+      {'title': 'Claimed', 'icon': Icons.volunteer_activism},
+      {'title': 'Picked Up', 'icon': Icons.local_shipping},
+      {'title': 'Delivered', 'icon': Icons.check_circle},
     ];
 
-    int currentStep = 1; // Mock current step
-    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Status Tracker',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          const Text('Live Tracking', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             children: List.generate(steps.length, (index) {
               final isCompleted = index <= currentStep;
               final isLast = index == steps.length - 1;
-              
               return Expanded(
                 child: Row(
                   children: [
                     Column(
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: isCompleted
-                                ? AppColors.primary
-                                : AppColors.border,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            steps[index]['icon'] as IconData,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          steps[index]['title'] as String,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isCompleted
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                            fontWeight: isCompleted
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        Icon(steps[index]['icon'] as IconData, 
+                             color: isCompleted ? AppColors.primary : Colors.grey[300]),
+                        const SizedBox(height: 4),
+                        Text(steps[index]['title'] as String, 
+                             style: TextStyle(fontSize: 10, color: isCompleted ? Colors.black : Colors.grey)),
                       ],
                     ),
                     if (!isLast)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          color: isCompleted ? AppColors.primary : AppColors.border,
-                          margin: const EdgeInsets.only(bottom: 30),
-                        ),
-                      ),
+                      Expanded(child: Container(height: 2, color: isCompleted ? AppColors.primary : Colors.grey[300])),
                   ],
                 ),
               );
@@ -316,26 +338,15 @@ class _StatusTracker extends StatelessWidget {
 
 class _InfoSection extends StatelessWidget {
   final String title;
-  final List<_InfoItem> items;
-
-  const _InfoSection({
-    required this.title,
-    required this.items,
-  });
+  final List<Widget> items;
+  const _InfoSection({required this.title, required this.items});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         ...items,
       ],
@@ -350,13 +361,7 @@ class _InfoItem extends StatelessWidget {
   final IconData? actionIcon;
   final VoidCallback? onAction;
 
-  const _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.actionIcon,
-    this.onAction,
-  });
+  const _InfoItem({required this.icon, required this.label, required this.value, this.actionIcon, this.onAction});
 
   @override
   Widget build(BuildContext context) {
@@ -366,41 +371,21 @@ class _InfoItem extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 20, color: AppColors.primary),
+            decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 20, color: Colors.grey[700]),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
               ],
             ),
           ),
           if (actionIcon != null)
-            IconButton(
-              icon: Icon(actionIcon, color: AppColors.primary),
-              onPressed: onAction,
-            ),
+            IconButton(icon: Icon(actionIcon, color: AppColors.primary), onPressed: onAction)
         ],
       ),
     );

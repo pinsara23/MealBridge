@@ -63,7 +63,6 @@ class MealBridgeApp extends StatelessWidget {
         AppRoutes.donorDashboard: (context) => const DonorDashboardScreen(),
         AppRoutes.postFood: (context) => const PostFoodScreen(),
         AppRoutes.myDonations: (context) => const MyDonationsScreen(),
-        AppRoutes.donationDetails: (context) => const DonationDetailsScreen(),
         AppRoutes.donorHistory: (context) => const DonorHistoryScreen(),
 
         // Recipient Routes

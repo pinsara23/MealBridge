@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
+import '../../services/websocket_service.dart';
 import '../../utils/constants.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -15,6 +16,8 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final ApiService _apiService = ApiService();
+  final WebSocketService _wsService = WebSocketService();
+  DateTime? _lastAdminRealtimeEventAt;
   
   // Stats Variables
   Map<String, dynamic> _stats = {
@@ -35,6 +38,42 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void initState() {
     super.initState();
     _loadAllData();
+    _initWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _wsService.disconnect();
+    super.dispose();
+  }
+
+  Future<void> _initWebSocket() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null) {
+      _wsService.connect(token, (frame) {
+        _wsService.subscribeToAdmin((message) {
+          if (mounted) {
+            final now = DateTime.now();
+            final lastEventAt = _lastAdminRealtimeEventAt;
+            if (lastEventAt != null && now.difference(lastEventAt).inSeconds < 3) {
+              return;
+            }
+            _lastAdminRealtimeEventAt = now;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: Colors.blueAccent,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            _loadAllData();
+          }
+        });
+      });
+    }
   }
 
   Future<void> _loadAllData() async {

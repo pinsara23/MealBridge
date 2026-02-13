@@ -5,21 +5,18 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-  final String baseUrl = "https://mbtorailway-copy-production.up.railway.app/api";
-      // ? "http://localhost:8080/api"  // Web (Chrome)
-      // : "http://10.0.2.2:8080/api";  // Android Emulator
+  final String baseUrl = "http://localhost:8080/api";
+  // ? "http://localhost:8080/api"  // Web (Chrome)
+  // : "http://10.0.2.2:8080/api";  // Android Emulator
 
   // --- LOGIN ---
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
-    
+
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email, 
-        'password': password
-      }),
+      body: jsonEncode({'email': email, 'password': password}),
     );
 
     if (response.statusCode == 200) {
@@ -39,9 +36,24 @@ class ApiService {
     try {
       // We run all 3 requests in parallel for speed
       final results = await Future.wait([
-        http.get(Uri.parse('$baseUrl/analytic/donations/count/total/restaurant/$restaurantId'), headers: headers),
-        http.get(Uri.parse('$baseUrl/analytic/donations/count/month/restaurant/$restaurantId'), headers: headers),
-        http.get(Uri.parse('$baseUrl/analytic/donations/count/aval/restaurant/$restaurantId'), headers: headers),
+        http.get(
+          Uri.parse(
+            '$baseUrl/analytic/donations/count/total/restaurant/$restaurantId',
+          ),
+          headers: headers,
+        ),
+        http.get(
+          Uri.parse(
+            '$baseUrl/analytic/donations/count/month/restaurant/$restaurantId',
+          ),
+          headers: headers,
+        ),
+        http.get(
+          Uri.parse(
+            '$baseUrl/analytic/donations/count/aval/restaurant/$restaurantId',
+          ),
+          headers: headers,
+        ),
       ]);
 
       // Check if any request failed
@@ -55,7 +67,6 @@ class ApiService {
       final active = int.parse(results[2].body);
 
       return DashboardStats.fromJson(total, month, active);
-
     } catch (e) {
       print("Error fetching stats: $e");
       rethrow;
@@ -63,10 +74,13 @@ class ApiService {
   }
 
   // --- ADD THIS NEW FUNCTION ---
-  Future<void> addDonation(String token, Map<String, dynamic> donationData) async {
+  Future<void> addDonation(
+    String token,
+    Map<String, dynamic> donationData,
+  ) async {
     // 1. Point to the donations endpoint
-    final url = Uri.parse('$baseUrl/donations'); 
-    
+    final url = Uri.parse('$baseUrl/donations');
+
     try {
       final response = await http.post(
         url,
@@ -87,12 +101,15 @@ class ApiService {
     }
   }
 
-  Future<List<dynamic>> getRestaurantDonations(String token, int restaurantId) async {
+  Future<List<dynamic>> getRestaurantDonations(
+    String token,
+    int restaurantId,
+  ) async {
     // Endpoint: /api/donations/feed/restaurent/{id}
     // Note: You wrote "restaurent" in your prompt, double check if it is "restaurant" or "restaurent" in your Java code.
     // I will use "restaurant" (standard spelling) but change it if your backend uses "restaurent".
-    final url = Uri.parse('$baseUrl/donations/feed/restaurent/$restaurantId'); 
-    
+    final url = Uri.parse('$baseUrl/donations/feed/restaurent/$restaurantId');
+
     try {
       final response = await http.get(
         url,
@@ -114,10 +131,15 @@ class ApiService {
   }
 
   // --- GET DONATION HISTORY ---
-  Future<List<dynamic>> getDonationHistory(String token, int restaurantId) async {
+  Future<List<dynamic>> getDonationHistory(
+    String token,
+    int restaurantId,
+  ) async {
     // Endpoint: /api/donations/feed/history/restaurant/{id}
-    final url = Uri.parse('$baseUrl/donations/feed/history/restaurant/$restaurantId');
-    
+    final url = Uri.parse(
+      '$baseUrl/donations/feed/history/restaurant/$restaurantId',
+    );
+
     try {
       final response = await http.get(
         url,
@@ -138,7 +160,10 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getRestaurantDetails(String token, int restaurantId) async {
+  Future<Map<String, dynamic>> getRestaurantDetails(
+    String token,
+    int restaurantId,
+  ) async {
     final url = Uri.parse('$baseUrl/restaurants/details/$restaurantId');
     try {
       final response = await http.get(
@@ -162,7 +187,9 @@ class ApiService {
 
   // --- GET MONTHLY COUNT (Specific Endpoint) ---
   Future<int> getMonthlyDonations(String token, int restaurantId) async {
-    final url = Uri.parse('$baseUrl/analytic/donations/count/month/restaurant/$restaurantId');
+    final url = Uri.parse(
+      '$baseUrl/analytic/donations/count/month/restaurant/$restaurantId',
+    );
     try {
       final response = await http.get(
         url,
@@ -173,7 +200,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return int.parse(response.body); // Assuming it returns a raw number like "12"
+        return int.parse(
+          response.body,
+        ); // Assuming it returns a raw number like "12"
       } else {
         return 0; // Default on error
       }
@@ -183,7 +212,10 @@ class ApiService {
   }
 
   // --- GET VOLUNTEER DETAILS ---
-  Future<Map<String, dynamic>> getVolunteerDetails(String token, int volunteerId) async {
+  Future<Map<String, dynamic>> getVolunteerDetails(
+    String token,
+    int volunteerId,
+  ) async {
     // CORRECTED ENDPOINT: /api/volunteer/details/{id}
     final url = Uri.parse('$baseUrl/volunteer/details/$volunteerId');
     try {
@@ -198,7 +230,7 @@ class ApiService {
       rethrow;
     }
   }
-  
+
   // --- 2. Get All Available Donations (Feed) ---
   Future<List<dynamic>> getAllDonationsFeed(String token) async {
     final url = Uri.parse('$baseUrl/donations/feed');
@@ -229,24 +261,49 @@ class ApiService {
     }
   }
 
+  Future<List<dynamic>> getVolunteerFinishedJobs(
+    String token,
+    int volunteerId,
+  ) async {
+    final url = Uri.parse(
+      '$baseUrl/donations/feed/finish/volunteer/$volunteerId',
+    );
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load finished jobs');
+    }
+  }
+
   // --- CLAIM DONATION ---
-  Future<void> claimDonation(String token, int donationId, int volunteerId) async {
-    final url = Uri.parse('$baseUrl/donations/$donationId/claim?vId=$volunteerId');
-    
+  Future<void> claimDonation(
+    String token,
+    int donationId,
+    int volunteerId,
+  ) async {
+    final url = Uri.parse(
+      '$baseUrl/donations/$donationId/claim?vId=$volunteerId',
+    );
+
     final response = await http.put(
       url,
       headers: {
         'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
     );
 
     print("DEBUG: Status: ${response.statusCode}"); // Check your console
-    print("DEBUG: Body: ${response.body}");         // Check your console
+    print("DEBUG: Body: ${response.body}"); // Check your console
 
     // 1. Check for specific error strings explicitly (even if status is 200)
     if (response.body.contains("error1")) {
-      throw Exception("error1"); 
+      throw Exception("error1");
     }
     if (response.body.contains("error2")) {
       throw Exception("error2");
@@ -255,15 +312,19 @@ class ApiService {
     // 2. Check for standard HTTP errors
     if (response.statusCode != 200) {
       // Pass the body so the UI can read it
-      throw Exception(response.body); 
+      throw Exception(response.body);
     }
   }
 
   // --- UPDATE VOLUNTEER PROFILE ---
-  Future<void> updateVolunteerProfile(String token, int volunteerId, Map<String, dynamic> updateData) async {
+  Future<void> updateVolunteerProfile(
+    String token,
+    int volunteerId,
+    Map<String, dynamic> updateData,
+  ) async {
     // Endpoint: /api/volunteer/update/{id}
     final url = Uri.parse('$baseUrl/volunteer/update/$volunteerId');
-    
+
     final response = await http.put(
       url,
       headers: {
@@ -286,30 +347,38 @@ class ApiService {
   }
 
   Future<int> getVolunteerMonthCount(String token, int id) async {
-    final url = Uri.parse('$baseUrl/analytic/donations/count/month/volunteer/$id');
+    final url = Uri.parse(
+      '$baseUrl/analytic/donations/count/month/volunteer/$id',
+    );
     return _getIntHelper(token, url);
   }
 
   Future<int> getVolunteerTotalCount(String token, int id) async {
-    final url = Uri.parse('$baseUrl/analytic/donations/count/total/volunteer/$id');
+    final url = Uri.parse(
+      '$baseUrl/analytic/donations/count/total/volunteer/$id',
+    );
     return _getIntHelper(token, url);
   }
 
   Future<int> getVolunteerActiveCount(String token, int id) async {
-    final url = Uri.parse('$baseUrl/analytic/donations/count/aval/volunteer/$id');
+    final url = Uri.parse(
+      '$baseUrl/analytic/donations/count/aval/volunteer/$id',
+    );
     return _getIntHelper(token, url);
   }
 
-  
   // --- HELPER TO SAFELY PARSE NUMBERS ---
   Future<int> _getIntHelper(String token, Uri url) async {
     try {
-      final response = await http.get(url, headers: {'Authorization': 'Bearer $token'});
-      
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
       if (response.statusCode == 200) {
         // FIX: Parse as double first to handle "10.0", then round to int
         final doubleValue = double.tryParse(response.body);
-        return doubleValue?.round() ?? 0; 
+        return doubleValue?.round() ?? 0;
       }
       return 0;
     } catch (e) {
@@ -320,15 +389,23 @@ class ApiService {
 
   // --- GET FINISHED COUNT ---
   Future<int> getVolunteerFinishedCount(String token, int id) async {
-    final url = Uri.parse('$baseUrl/analytic/donations/count/finish/volunteer/$id');
+    final url = Uri.parse(
+      '$baseUrl/analytic/donations/count/finish/volunteer/$id',
+    );
     return _getIntHelper(token, url);
   }
 
   // --- VERIFY PICKUP (RESTAURANT SIDE) ---
-  Future<bool> verifyPickupByRestaurant(String token, int restaurantId, String pickupToken) async {
+  Future<bool> verifyPickupByRestaurant(
+    String token,
+    int restaurantId,
+    String pickupToken,
+  ) async {
     // Endpoint: /api/donations/{restaurantId}/verify-pickup?token={token}
-    final url = Uri.parse('$baseUrl/donations/$restaurantId/verify-pickup?token=$pickupToken');
-    
+    final url = Uri.parse(
+      '$baseUrl/donations/$restaurantId/verify-pickup?token=$pickupToken',
+    );
+
     final response = await http.put(
       url,
       headers: {
@@ -354,7 +431,7 @@ class ApiService {
         url,
         headers: {'Authorization': 'Bearer $token'},
       );
-      
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
@@ -368,16 +445,37 @@ class ApiService {
   // --- ADMIN: STATISTICS ---
   Future<Map<String, dynamic>> getAdminStats(String token) async {
     final headers = {'Authorization': 'Bearer $token'};
-    
+
     // Fetch all stats in parallel for performance
     final results = await Future.wait([
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-quantity'), headers: headers), // 0: Food Rescued
-      http.get(Uri.parse('$baseUrl/admin/stats/users/count'), headers: headers),  // 1: Active Users
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-donations/available'), headers: headers), // 2: Active Donations
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-donations/completed'), headers: headers), // 3: Completed Donations
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-donations'), headers: headers), // 4: Total Donations
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-restaurants'), headers: headers), // 5: Total Restaurants
-      http.get(Uri.parse('$baseUrl/admin/stats/tot-volunteers'), headers: headers), // 6: Total Volunteers
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-quantity'),
+        headers: headers,
+      ), // 0: Food Rescued
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/users/count'),
+        headers: headers,
+      ), // 1: Active Users
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-donations/available'),
+        headers: headers,
+      ), // 2: Active Donations
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-donations/completed'),
+        headers: headers,
+      ), // 3: Completed Donations
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-donations'),
+        headers: headers,
+      ), // 4: Total Donations
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-restaurants'),
+        headers: headers,
+      ), // 5: Total Restaurants
+      http.get(
+        Uri.parse('$baseUrl/admin/stats/tot-volunteers'),
+        headers: headers,
+      ), // 6: Total Volunteers
     ]);
 
     return {
@@ -406,7 +504,11 @@ class ApiService {
     throw Exception('Failed to load admin details');
   }
 
-  Future<void> updateAdminPassword(String token, int id, String newPassword) async {
+  Future<void> updateAdminPassword(
+    String token,
+    int id,
+    String newPassword,
+  ) async {
     final response = await http.put(
       Uri.parse('$baseUrl/admin/update-password/$id/new?password=$newPassword'),
       headers: {'Authorization': 'Bearer $token'},
@@ -415,10 +517,17 @@ class ApiService {
   }
 
   // --- SUPERADMIN ONLY ---
-  Future<void> registerNewAdmin(String token, String email, String password) async {
+  Future<void> registerNewAdmin(
+    String token,
+    String email,
+    String password,
+  ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/admin/register'),
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode({'userName': email, 'password': password}),
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -427,26 +536,38 @@ class ApiService {
   }
 
   Future<List<dynamic>> getAllAdmins(String token) async {
-    final response = await http.get(Uri.parse('$baseUrl/admin/get/admin/all'), headers: {'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/get/admin/all'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
     if (response.statusCode == 200) return jsonDecode(response.body);
     return [];
   }
 
   // --- LISTS & APPROVALS ---
   Future<List<dynamic>> getAdminRestaurants(String token) async {
-    final response = await http.get(Uri.parse('$baseUrl/admin/stats/restaurants'), headers: {'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats/restaurants'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
     if (response.statusCode == 200) return jsonDecode(response.body);
     return [];
   }
 
   Future<List<dynamic>> getAdminVolunteers(String token) async {
-    final response = await http.get(Uri.parse('$baseUrl/admin/stats/volunteers'), headers: {'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats/volunteers'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
     if (response.statusCode == 200) return jsonDecode(response.body);
     return [];
   }
 
   Future<List<dynamic>> getUnapprovedVolunteers(String token) async {
-    final response = await http.get(Uri.parse('$baseUrl/admin/stats/volunteers/unapproved'), headers: {'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats/volunteers/unapproved'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
     if (response.statusCode == 200) return jsonDecode(response.body);
     return [];
   }
@@ -486,6 +607,4 @@ class ApiService {
       throw Exception('Registration failed: ${response.body}');
     }
   }
-  
-
 }

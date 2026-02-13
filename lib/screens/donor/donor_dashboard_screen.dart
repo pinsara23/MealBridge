@@ -7,8 +7,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../theme/colors.dart';
 import '../../utils/constants.dart';
 import '../../services/api_service.dart';
+import '../../services/websocket_service.dart';
 import '../../models/dashboard_stats.dart';
 import '../common/qr_scanner_screen.dart'; 
+import 'donation_details_screen.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({Key? key}) : super(key: key);
@@ -27,12 +29,20 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   Future<double>? _predictionFuture;
   
   final ApiService _apiService = ApiService();
+  final WebSocketService _wsService = WebSocketService();
   String _restaurantName = "Partner";
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _initWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _wsService.disconnect();
+    super.dispose();
   }
 
   // 2. Load Data
@@ -61,6 +71,35 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
       } catch (e) {
         print("Could not load name: $e");
       }
+    }
+  }
+
+  // --- WEBSOCKET LOGIC ---
+  Future<void> _initWebSocket() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final restaurantId = prefs.getInt('userId');
+
+    if (token != null && restaurantId != null) {
+      _wsService.connect(token, (frame) {
+        print("✅ Dashboard: WebSocket Connected");
+
+        _wsService.subscribeToRestaurant(restaurantId, (newMessage) {
+          print("📩 Restaurant Update: $newMessage");
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Status changed: $newMessage"),
+                backgroundColor: Colors.blue,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+
+            _loadData();
+          }
+        });
+      });
     }
   }
 
@@ -799,6 +838,23 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                   padding: const EdgeInsets.all(8),
                   child: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                 ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DonationDetailsScreen(
+                        donationId: item['id'] ?? 0,
+                        initialStatus: item['status'] ?? 'AVAILABLE',
+                        foodDescription: item['foodDescription'] ?? 'Food Package',
+                        quantity: item['quantityKg']?.toString() ?? 'N/A',
+                        pickupTime: item['mustPickupBy']?.toString() ?? 'Anytime',
+                        restaurantName: _restaurantName,
+                        volunteerName: item['volunteerName'] ?? 'Not Assigned',
+                        volunteerPhone: item['volunteerPhone'] ?? '',
+                      ),
+                    ),
+                  ).then((_) => _loadData());
+                },
               ),
             );
           },
