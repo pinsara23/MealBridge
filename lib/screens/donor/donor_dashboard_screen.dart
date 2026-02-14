@@ -74,6 +74,25 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      if (token != null) {
+        await _apiService.logout(token);
+      }
+    } catch (_) {}
+
+    await prefs.remove('token');
+    await prefs.remove('userId');
+    await prefs.remove('role');
+    await prefs.remove('displayName');
+
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+  }
+
   // --- WEBSOCKET LOGIC ---
   Future<void> _initWebSocket() async {
     final prefs = await SharedPreferences.getInstance();
@@ -463,6 +482,18 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
           ),
         ),
         actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.red),
+              onPressed: _logout,
+              tooltip: 'Logout',
+            ),
+          ),
           FutureBuilder<Map<String, dynamic>>(
             future: _restaurantDetailsFuture,
             builder: (context, snapshot) {

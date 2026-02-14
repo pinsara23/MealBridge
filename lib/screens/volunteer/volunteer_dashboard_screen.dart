@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
 import '../../services/websocket_service.dart';
+import '../../utils/constants.dart';
 
 // ──────────────────────────────────────────────────
 //  MAIN  SCREEN
@@ -235,6 +236,25 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
         );
       }
     }
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      if (token != null) {
+        await _apiService.logout(token);
+      }
+    } catch (_) {}
+
+    await prefs.remove('token');
+    await prefs.remove('userId');
+    await prefs.remove('role');
+    await prefs.remove('displayName');
+
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
 
   String _formatFinishedDate(dynamic value) {
@@ -1271,6 +1291,26 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _logout();
+                  },
+                  icon: const Icon(Icons.logout_rounded, size: 18),
+                  label: const Text("Logout"),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: Colors.red,
+                    side: BorderSide(color: Colors.red.withOpacity(0.35)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

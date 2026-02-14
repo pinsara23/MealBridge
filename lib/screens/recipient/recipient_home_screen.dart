@@ -122,6 +122,25 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      if (token != null) {
+        await _apiService.logout(token);
+      }
+    } catch (_) {}
+
+    await prefs.remove('token');
+    await prefs.remove('userId');
+    await prefs.remove('role');
+    await prefs.remove('displayName');
+
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,7 +164,7 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
             ),
           ),
           Container(
-            margin: const EdgeInsets.only(right: 8),
+            margin: const EdgeInsets.only(right: 4),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -154,6 +173,19 @@ class _RecipientHomeScreenState extends State<RecipientHomeScreen> {
               icon: const Icon(Icons.tune_rounded, size: 20),
               onPressed: _showFilterBottomSheet,
               color: AppColors.primary,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, size: 20),
+              onPressed: _logout,
+              color: Colors.red,
+              tooltip: 'Logout',
             ),
           ),
         ],

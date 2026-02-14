@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-  final String baseUrl = "http://localhost:8080/api";
+  final String baseUrl = "https://mbtorailway-copy-production.up.railway.app/api";
   // ? "http://localhost:8080/api"  // Web (Chrome)
   // : "http://10.0.2.2:8080/api";  // Android Emulator
 
@@ -23,6 +23,23 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Login failed: ${response.body}');
+    }
+  }
+
+  // --- LOGOUT ---
+  Future<void> logout(String token) async {
+    final url = Uri.parse('$baseUrl/auth/logout');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Logout failed: ${response.body}');
     }
   }
 
