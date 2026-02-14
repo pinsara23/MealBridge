@@ -1,16 +1,28 @@
-import 'dart:convert';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
+import 'api_service.dart';
 
 class WebSocketService {
   StompClient? stompClient;
 
-  // IMPORTANT: 
-  // - If using Android Emulator: Use '10.0.2.2'
-  // - If using Real Device: Use your PC's IP address (e.g., '192.168.1.50')
-  // - Protocol is 'ws://' (not 'http://')
-  final String _socketUrl = 'ws://localhost:8080/ws/websocket'; 
+  final String _socketUrl = _buildSocketUrl();
+
+  static String _buildSocketUrl() {
+    final apiUri = Uri.parse(ApiService().baseUrl);
+    final socketScheme = apiUri.scheme == 'https' ? 'wss' : 'ws';
+
+    final socketPath = apiUri.path.endsWith('/api')
+        ? '${apiUri.path.substring(0, apiUri.path.length - 4)}/ws/websocket'
+        : '/ws/websocket';
+
+    return Uri(
+      scheme: socketScheme,
+      host: apiUri.host,
+      port: apiUri.hasPort ? apiUri.port : null,
+      path: socketPath,
+    ).toString();
+  }
 
   // Connect to the Backend
   void connect(String token, Function(StompFrame) onConnectCallback) {
@@ -21,7 +33,7 @@ class WebSocketService {
         url: _socketUrl,
         onConnect: onConnectCallback,
         beforeConnect: () async {
-          print('🔗 Connecting to WebSocket...');
+          print('🔗 Connecting to WebSocket: $_socketUrl');
         },
         onWebSocketError: (dynamic error) => print('❌ WebSocket Error: $error'),
         
