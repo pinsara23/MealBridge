@@ -1,0 +1,72 @@
+services:
+  # Service 1: Spring Boot API (Java)
+  api:
+    image: pinsara23/meal-bridge:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/mydb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=mysecretpassword
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      # Tell Java where the ML model lives (using the service name 'ml-service')
+      - ML_API_URL=http://ml-service:5000/predict
+    depends_on:
+      - db
+      - ml-service
+    volumes:
+      # The API needs access to uploads, NOT the database
+      - ./uploads:/app/uploads
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: always
+
+  # Service 2: ML Model (Python) - NEW!
+  ml-service:
+    # We give it a different image name
+    image: pinsara23/meal-bridge-ml:latest
+    ports:
+      - "5000:5000"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: always
+
+  # Service 3: Flutter Web Frontend
+  flutter-web:
+    image: pinsara23/mealbridgefrontend:latest
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    restart: always
+
+  # Service 4: Database
+  db:
+    image: postgis/postgis:15-3.4-alpine
+    environment:
+      - POSTGRES_DB=mydb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+
+  # Service 5: Auto-Updater
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Check every hour (3600s) instead of 30s to avoid rate limits
+      - WATCHTOWER_POLL_INTERVAL=60
+      # DELETE old images to save your 20GB SSD space
+      - WATCHTOWER_CLEANUP=true
+      # Only monitor containers explicitly labeled for updates
+      - WATCHTOWER_LABEL_ENABLE=true
+
+    restart: always
+
+volumes:
+  postgres-data:

@@ -1,0 +1,14 @@
+.dart_tool
+.idea
+.vscode
+build
+ios
+android
+linux
+macos
+windows
+.git
+.github
+*.iml
+*.log
+README.md

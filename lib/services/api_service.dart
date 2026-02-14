@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-  final String baseUrl = "https://mbtorailway-copy-production.up.railway.app/api";
+  final String baseUrl = "http://192.168.43.35:8080/api";
   // ? "http://localhost:8080/api"  // Web (Chrome)
   // : "http://10.0.2.2:8080/api";  // Android Emulator
 
