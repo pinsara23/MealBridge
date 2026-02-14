@@ -36,8 +36,12 @@ services:
     image: pinsara23/mealbridgefrontend:latest
     ports:
       - "3000:80"
+      - "3443:443"
     depends_on:
       - api
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
     restart: always
