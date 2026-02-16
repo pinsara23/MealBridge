@@ -26,6 +26,21 @@ class ApiService {
     }
   }
 
+  // --- FORGOT PASSWORD ---
+  Future<void> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl/auth/forgot-password');
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Forgot password request failed: ${response.body}');
+    }
+  }
+
   // --- LOGOUT ---
   Future<void> logout(String token) async {
     final url = Uri.parse('$baseUrl/auth/logout');
@@ -198,6 +213,42 @@ class ApiService {
       }
     } catch (e) {
       print("Error fetching details: $e");
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getNearbyRestaurants(
+    String token,
+    double latitude,
+    double longitude,
+  ) async {
+    final url = Uri.parse('$baseUrl/restaurants/nearby').replace(
+      queryParameters: {
+        'latitude': latitude.toString(),
+        'longitude': longitude.toString(),
+      },
+    );
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded;
+        }
+        throw Exception('Unexpected nearby restaurants response');
+      } else {
+        throw Exception('Failed to load nearby restaurants: ${response.body}');
+      }
+    } catch (e) {
+      print("Error fetching nearby restaurants: $e");
       rethrow;
     }
   }

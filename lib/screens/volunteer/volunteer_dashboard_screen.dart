@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import '../../theme/colors.dart';
 import '../../services/api_service.dart';
 import '../../services/websocket_service.dart';
+import 'nearby_restaurants_screen.dart';
 import '../../utils/constants.dart';
 
 // ──────────────────────────────────────────────────
@@ -45,7 +46,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
   int _activeCount = 0;
   int _finishedCount = 0;
 
-  // Bottom‑nav index: 0 = Orders, 1 = My Deliveries, 2 = Stats
+  // Bottom‑nav index: 0 = Orders, 1 = My Deliveries, 2 = Stats, 3 = Nearby
   int _currentIndex = 0;
 
   // Auto‑refresh timer
@@ -1518,6 +1519,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
             _buildOrdersPage(),
             _buildMyDeliveriesPage(),
             _buildStatsPage(),
+            const NearbyRestaurantsScreen(embedded: true),
           ],
         ),
       ),
@@ -1553,6 +1555,7 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
                       .length,
                 ),
                 _buildNavItem(2, Icons.leaderboard_rounded, "Impact"),
+                _buildNavItem(3, Icons.map_rounded, "Nearby Restaurants"),
               ],
             ),
           ),

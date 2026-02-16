@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 import '../../theme/colors.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -13,8 +16,27 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final ApiService _apiService = ApiService();
   bool _isLoading = false;
   bool _emailSent = false;
+
+  String _extractErrorMessage(Object error) {
+    final raw = error.toString().replaceFirst('Exception: ', '').trim();
+
+    if (raw.startsWith('{') && raw.endsWith('}')) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          final message = decoded['message']?.toString().trim();
+          if (message != null && message.isNotEmpty) {
+            return message;
+          }
+        }
+      } catch (_) {}
+    }
+
+    return raw.isNotEmpty ? raw : 'Unable to send reset link. Please try again.';
+  }
 
   @override
   void dispose() {
@@ -22,17 +44,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _handleResetPassword() {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      
-      // Simulate sending reset email
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-          _emailSent = true;
-        });
-      });
+  Future<void> _handleResetPassword() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _apiService.forgotPassword(_emailController.text.trim());
+      if (!mounted) {
+        return;
+      }
+      setState(() => _emailSent = true);
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_extractErrorMessage(e))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
