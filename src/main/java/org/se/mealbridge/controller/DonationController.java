@@ -4,6 +4,8 @@ import org.se.mealbridge.dto.DonationsDto;
 import org.se.mealbridge.repository.DonationRepository;
 import org.se.mealbridge.services.DonationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -84,6 +86,12 @@ public class DonationController {
     @PostMapping ("/distribute/withoutphoto")
     public boolean submitProof(@RequestParam("token") String token){
         return donationService.confirmDistribution(token);
+    }
+
+    // /api/donations/{id}/image
+    @GetMapping("/{id}/image")
+    public ResponseEntity<Resource> sendImageToRestaurant(@PathVariable Long id){
+        return donationService.sendImage(id);
     }
 
 

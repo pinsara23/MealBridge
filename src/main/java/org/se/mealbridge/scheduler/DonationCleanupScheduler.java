@@ -75,7 +75,7 @@ public class DonationCleanupScheduler {
     }
 
     @Transactional
-    @Scheduled(fixedRate = 3600000)
+    @Scheduled(fixedRate = 3600000) // run every hour
     public void deleteBlackListedTokens(){
 
         tokanBlacklistRepository.deleteByExpiryDateBefore(LocalDateTime.now());

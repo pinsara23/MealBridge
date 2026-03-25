@@ -33,11 +33,12 @@ public class RestaurantController {
         return restaurantService.changePassword(restaurantId, opass, npass);
     }
 
+    // /api/restaurants/nearby
     @GetMapping("/nearby")
     public List<RestaurantDTO> getNearby(
             @RequestParam double latitude,
             @RequestParam double longitude,
-            @RequestParam(defaultValue = "5000") double radius
+            @RequestParam(defaultValue = "10000") double radius
     ){
         return restaurantService.findNearbyRestaurants(latitude, longitude, radius);
     }

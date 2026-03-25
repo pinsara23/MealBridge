@@ -14,16 +14,28 @@ import org.se.mealbridge.repository.VolunteerRepository;
 import org.se.mealbridge.util.FileStorageutil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class DonationService {
+
+    private final String uploadDir = "uploads/";
 
     @Autowired
     private DonationRepository donationRepository;
@@ -259,6 +271,40 @@ public class DonationService {
         volunteerDto.setPassword(null);
         volunteerDto.setMessage(null);
         return volunteerDto;
+    }
+
+    public ResponseEntity<Resource> sendImage(long donationId){
+
+        DonationEntity donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new RuntimeException("Donation not found"));
+
+        if (donation.getImageUrl() == null){
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(donation.getImageUrl()).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()){
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null){
+                contentType = "application/octet-stream";//Fall back to default
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + donation.getImageUrl() + "\"")
+                    .body(resource);
+
+        } catch (Exception e) {
+            return  ResponseEntity.internalServerError().build();
+        }
+
+
     }
 
 
