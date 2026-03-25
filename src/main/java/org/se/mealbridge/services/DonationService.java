@@ -35,7 +35,7 @@ import java.util.UUID;
 @Service
 public class DonationService {
 
-    private final String uploadDir = "doc/uploads/";
+    private final String uploadDir = "/app/uploads/";
 
     @Autowired
     private DonationRepository donationRepository;
