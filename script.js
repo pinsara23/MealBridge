@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Simulate API call delay for UX (remove in production if desired, but good for "feel")
             // await new Promise(r => setTimeout(r, 800)); 
 
-            const response = await fetch('http://192.168.43.35:8080/api/auth/reset-password', {
+            const response = await fetch('http://10.34.10.142:8080/api/auth/reset-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
