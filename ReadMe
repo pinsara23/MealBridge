@@ -1,47 +1,242 @@
-Register a new business:
+# MealBridge
+
+MealBridge is a food donation platform that connects restaurants with volunteer organizations. Restaurants can publish surplus food, volunteers can claim available donations, and restaurants can verify collection using a pickup token. The platform also provides administrative analytics and a machine-learning service for waste prediction.
+
+## Architecture
+
+- **API:** Spring Boot 3.5, Java 21, Spring Web, JPA, Security, JWT, WebSocket, and email support
+- **Database:** PostgreSQL with PostGIS
+- **ML service:** Flask and scikit-learn Random Forest regression model
+- **Storage:** Local `uploads` directory for donation proof images
+- **Deployment:** Docker Compose with API, ML service, database, and Watchtower containers
+
+## Requirements
+
+For local development:
+
+- Java 21
+- Maven, or the included Maven Wrapper
+- PostgreSQL 15+ with PostGIS enabled
+- Python 3.9+ for the ML service
+
+For the containerized setup, install Docker Desktop with Docker Compose.
+
+## Run With Docker Compose
+
+From the project root:
+
+```bash
+docker compose up -d
+```
+
+The services are then available at:
+
+| Service | URL |
+| --- | --- |
+| Spring Boot API | `http://localhost:8080` |
+| ML service | `http://localhost:5000` |
+| PostgreSQL/PostGIS | `localhost:5432` |
+
+To view logs or stop the stack:
+
+```bash
+docker compose logs -f api
+docker compose down
+```
+
+The Compose file uses the published images `pinsara23/meal-bridge:latest` and `pinsara23/meal-bridge-ml:latest`. To build from local source instead, build the images first or change the Compose file to use local `build` definitions.
+
+## Run Locally
+
+1. Create a PostgreSQL database named `MealBridge` and enable PostGIS.
+2. Configure the datasource and mail settings in `src/main/resources/application.properties`, or provide equivalent environment-specific Spring configuration.
+3. Start the API:
+
+```bash
+./mvnw spring-boot:run
+```
+
+On Windows:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+To run the test suite:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Run the ML service separately when developing without Docker:
+
+```bash
+cd ML_Model
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python MealBridgeMLModel.py
+```
+
+On Windows PowerShell, activate the virtual environment with `.\.venv\Scripts\Activate.ps1`. The Flask service listens on port `5000`; the API uses `http://localhost:5000/predict` by default.
+
+## Authentication
+
+Log in through `POST /api/auth/login`. The response contains a JWT. Send it with protected requests using:
+
+```http
+Authorization: Bearer <JWT>
+```
+
+The login request uses an email for restaurants and volunteers. Admin login uses the admin username in the same `email` field.
+
+```json
 {
-  "businessName": "Masma Eat",
-  "email": "info@masmaeat.lk",
-  "password": "securepass",
+  "email": "restaurant@example.com",
+  "password": "your-password"
+}
+```
+
+Other authentication endpoints:
+
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `POST /api/auth/logout`
+
+## Main API Endpoints
+
+All API routes are relative to `http://localhost:8080`.
+
+### Restaurants
+
+- `POST /api/restaurants/register`
+- `PUT /api/restaurants/update/{restaurantId}`
+- `POST /api/restaurants/update/password/{restaurantId}`
+- `GET /api/restaurants/nearby?latitude={lat}&longitude={lng}&radius={meters}`
+- `GET /api/restaurants/details/{id}`
+- `GET /api/restaurants/location/{id}`
+
+Example registration:
+
+```json
+{
+  "businessName": "Example Kitchen",
+  "email": "restaurant@example.com",
+  "password": "change-me",
   "phoneNumber": "0771234567",
-  "latitude": 6.8471142813513906,
-  "longitude":79.94666928256423,
+  "latitude": 6.847114,
+  "longitude": 79.946669,
   "openTime": "08:00:00",
   "closeTime": "22:00:00"
 }
+```
 
-post a donation - creates a pickup token
+### Volunteers
+
+- `POST /api/volunteer/register`
+- `PUT /api/volunteer/update/{id}`
+- `POST /api/volunteer/update/password/{id}`
+- `GET /api/volunteer/details/{id}`
+
+Example registration:
+
+```json
 {
-  "foodDescription": "10 Packets of Rice And Curry",
+  "presidentFullName": "Volunteer Coordinator",
+  "organizationName": "Community Helpers",
+  "email": "volunteers@example.com",
+  "phoneNumber": "0716585486",
+  "password": "change-me"
+}
+```
+
+New volunteer groups may require admin approval before they can participate.
+
+### Donations
+
+- `POST /api/donations` - publish a donation and create a pickup token
+- `GET /api/donations/feed` - list available donations
+- `GET /api/donations/feed/restaurent/{id}` - list a restaurant's donations
+- `GET /api/donations/feed/history/restaurant/{id}` - restaurant donation history
+- `GET /api/donations/feed/volunteer/{id}` - donations assigned to a volunteer
+- `GET /api/donations/feed/finish/volunteer/{id}` - completed volunteer donations
+- `PUT /api/donations/{donationId}/claim?vId={volunteerId}` - claim a donation
+- `PUT /api/donations/{id}/verify-pickup?token={pickupToken}` - verify collection
+- `POST /api/donations/distribute` - submit distribution proof as multipart form data
+- `POST /api/donations/distribute/withoutphoto?token={pickupToken}` - confirm without a photo
+- `GET /api/donations/{id}/image` - retrieve proof image
+
+Example donation:
+
+```json
+{
+  "foodDescription": "10 packets of rice and curry",
   "quantityKg": 3.5,
   "hoursValid": 4,
   "restaurantId": 1
 }
+```
 
-Add volunteer group
-{
-  "presidentFullName" : "Pinsara Sarathchandra",
-  "organizationName" : "Meal Bridge",
-  "email" : "info1@mealbridge.com",
-  "phoneNumber": "0716585486",
-  "password": "test"
+Typical flow:
 
-}
+1. A restaurant creates a donation and receives a pickup token.
+2. A volunteer views the feed and claims the donation.
+3. The volunteer presents the token or its QR representation at the restaurant.
+4. The restaurant verifies the pickup.
+5. The volunteer submits a distribution photo or confirms distribution without a photo.
 
-add admin
-{
-    "userName": "pinsara",
-    "password": "test",
-    "role": "superadmin"
-}
+### Administration and Analytics
 
-after volunteer accept a donation request he will receive pickup token and generate a qr code then volunteer can go
-to the shop and show that qr code and get donation
+Admin routes are under `/api/admin`; approval and other protected operations require an admin JWT.
 
-how to use token
+- `POST /api/admin/register`
+- `PUT /api/admin/volunteer/{id}/approve`
+- `GET /api/admin/stats/tot-restaurants`
+- `GET /api/admin/stats/tot-volunteers`
+- `GET /api/admin/stats/tot-donations`
+- `GET /api/admin/stats/tot-donations/available`
+- `GET /api/admin/stats/tot-donations/completed`
+- `GET /api/admin/stats/tot-quantity`
+- `GET /api/admin/stats/users/count`
+- `GET /api/admin/stats/restaurants`
+- `GET /api/admin/stats/volunteers`
+- `GET /api/admin/stats/volunteers/unapproved`
 
-This is how you get past the security guard.
+Restaurant and volunteer analytics are available under `/api/analytic`, including monthly donation counts, donation status graphs, creditor data, and `GET /api/analytic/predict/{restaurantId}`.
 
-1.Click the Authorization tab (under the URL bar).
-2.Change Type to Bearer Token.
-3.Paste your Token string into the "Token" box.
+## ML Service
+
+The Flask endpoint is `POST /predict`. It expects historical records containing `dayIndex` and `totalWeight`:
+
+```json
+[
+  { "dayIndex": 0, "totalWeight": 2.5 },
+  { "dayIndex": 1, "totalWeight": 3.1 },
+  { "dayIndex": 2, "totalWeight": 2.8 }
+]
+```
+
+It returns the predicted quantity for the next day in kilograms. The Spring API calls this service through the `ML_API_URL` property.
+
+## Configuration and Security
+
+Do not commit database passwords, SMTP passwords, JWT secrets, or other credentials. Configure them with environment-specific Spring properties or deployment secrets. The values shown in local configuration files are development settings and should be replaced before deployment.
+
+The API creates or updates the database schema automatically with `spring.jpa.hibernate.ddl-auto=update`. Use migrations and a managed secret store for production environments.
+
+## Project Structure
+
+```text
+MealBridge/
+├── src/main/java/org/se/mealbridge/   Spring Boot application
+├── src/main/resources/                 Runtime configuration and static resources
+├── ML_Model/                           Flask prediction service
+├── uploads/                            Donation proof uploads
+├── Dockerfile                          API container image
+├── docker-compose.yaml                 Full local deployment
+└── pom.xml                             Maven build configuration
+```
+
+## License
+
+No license has been specified for this project yet.
