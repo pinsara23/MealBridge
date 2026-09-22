@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -154,6 +155,88 @@ class _HistoryTabState extends State<_HistoryTab> {
     }
   }
 
+  int? _extractDonationId(dynamic item) {
+    final dynamic rawId = item['donationId'] ?? item['id'];
+    if (rawId is int) return rawId;
+    if (rawId == null) return null;
+    return int.tryParse(rawId.toString());
+  }
+
+  Future<void> _showDonationImage(int donationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (!mounted) return;
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session expired. Please log in again.')),
+      );
+      return;
+    }
+
+    final imageFuture = _apiService.getDonationProofImage(token, donationId);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Donation #$donationId Proof'),
+          content: SizedBox(
+            width: 320,
+            child: FutureBuilder<Uint8List?>(
+              future: imageFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 220,
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'No Image Uploaded',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data == null) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'No image found',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    snapshot.data!,
+                    fit: BoxFit.contain,
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -195,48 +278,75 @@ class _HistoryTabState extends State<_HistoryTab> {
               final String quantity = "${item['quantityKg']} kg";
               final String status = item['status'] ?? 'Unknown';
               final String date = _formatDate(item['mustPickupBy']);
+              final int? donationId = _extractDonationId(item);
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))
-                  ],
-                  border: Border.all(color: Colors.black.withOpacity(0.02), width: 1.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                                letterSpacing: -0.5,
+              return GestureDetector(
+                onTap: () {
+                  if (donationId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Donation ID not available')),
+                    );
+                    return;
+                  }
+                  _showDonationImage(donationId);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))
+                    ],
+                    border: Border.all(color: Colors.black.withOpacity(0.02), width: 1.5),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
                             ),
-                          ),
-                          _buildStatusChip(status),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildInfoRow(Icons.calendar_today_rounded, date, AppColors.primary),
-                          const SizedBox(width: 16),
-                          _buildInfoRow(Icons.scale_rounded, quantity, AppColors.secondary),
-                        ],
-                      ),
-                    ],
+                            _buildStatusChip(status),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildInfoRow(Icons.calendar_today_rounded, date, AppColors.primary),
+                            const SizedBox(width: 16),
+                            _buildInfoRow(Icons.scale_rounded, quantity, AppColors.secondary),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: const [
+                            Icon(Icons.photo_library_outlined, size: 14, color: AppColors.textSecondary),
+                            SizedBox(width: 6),
+                            Text(
+                              'Tap to view proof image',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

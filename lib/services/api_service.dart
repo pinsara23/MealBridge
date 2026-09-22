@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/dashboard_stats.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-  final String baseUrl = "http://192.168.43.35:8080/api";
+  final String baseUrl = "http://10.34.10.142:8080/api";
   // ? "http://localhost:8080/api"  // Web (Chrome)
   // : "http://10.0.2.2:8080/api";  // Android Emulator
 
@@ -167,10 +168,68 @@ class ApiService {
     String token,
     int restaurantId,
   ) async {
-    // Endpoint: /api/donations/feed/history/restaurant/{id}
-    final url = Uri.parse(
-      '$baseUrl/donations/feed/history/restaurant/$restaurantId',
-    );
+    final urls = [
+      // Keep both spellings because backend routes have mixed naming in this project.
+      Uri.parse('$baseUrl/donations/feed/history/restaurant/$restaurantId'),
+      Uri.parse('$baseUrl/donations/feed/history/restaurent/$restaurantId'),
+    ];
+
+    try {
+      int? lastStatusCode;
+      String lastResponseBody = '';
+
+      for (final url in urls) {
+        final response = await http.get(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        lastStatusCode = response.statusCode;
+        lastResponseBody = response.body;
+
+        if (response.statusCode == 200) {
+          return jsonDecode(response.body); // Returns list of history items
+        }
+
+        // If route does not exist, try the fallback route.
+        if (response.statusCode == 404) {
+          continue;
+        }
+
+        // If history route is forbidden, try the next alias first.
+        if (response.statusCode == 403) {
+          continue;
+        }
+
+        throw Exception('Failed to load history: ${response.statusCode} ${response.body}');
+      }
+
+      // Some backend configurations block /history but allow /feed/restaurent.
+      // Fallback: derive history from donations feed using non-active statuses.
+      if (lastStatusCode == 403) {
+        final donations = await getRestaurantDonations(token, restaurantId);
+        return donations.where((item) {
+          final status = (item['status'] ?? '').toString().toUpperCase();
+          return status == 'COMPLETED' ||
+              status == 'DISTRIBUTED' ||
+              status == 'EXPIRED' ||
+              status == 'CANCELLED';
+        }).toList();
+      }
+
+      throw Exception('Failed to load history: endpoint not found (404)');
+    } catch (e) {
+      print("Error fetching history: $e");
+      rethrow;
+    }
+  }
+
+  // --- GET DONATION PROOF IMAGE ---
+  Future<Uint8List?> getDonationProofImage(String token, int donationId) async {
+    final url = Uri.parse('$baseUrl/donations/$donationId/image');
 
     try {
       final response = await http.get(
@@ -182,12 +241,19 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body); // Returns list of history items
-      } else {
-        throw Exception('Failed to load history');
+        return response.bodyBytes.isEmpty ? null : response.bodyBytes;
       }
+
+      // Backend contract: 403 + body "1" means no proof image exists.
+      if (response.statusCode == 403 && response.body.trim() == '1') {
+        return null;
+      }
+
+      throw Exception(
+        'Failed to load donation image: ${response.statusCode} ${response.body}',
+      );
     } catch (e) {
-      print("Error fetching history: $e");
+      print("Error fetching donation image: $e");
       rethrow;
     }
   }
