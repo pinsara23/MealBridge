@@ -214,10 +214,4 @@ docker compose logs -f
 
 This repository is structured as the Flutter frontend for a larger MealBridge ecosystem. The app is functional as a client application for food donation workflows, with backend integration expected through the configured API and Docker services.
 
-## License
 
-This project does not currently include a license file. If you plan to publish or distribute it publicly, add an appropriate license before release.
-
-## Contributing
-
-Contributions are welcome. Please keep code changes aligned with the app's role-based architecture and ensure API integration remains compatible with the backend contract.
